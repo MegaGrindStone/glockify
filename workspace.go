@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+type WorkspaceNode struct {
+	baseEndpoint string
+	apiKey       string
+}
+
 type Workspace struct {
 	HourlyRate        HourlyRate        `json:"hourlyRate"`
 	ID                string            `json:"id"`
@@ -71,10 +76,9 @@ type WorkspaceSettings struct {
 	FeatureSubscriptionType            string        `json:"featureSubscriptionType"`
 }
 
-const workspacesPath = "/workspace"
-
-func (g *Glockify) Workspaces(ctx context.Context) ([]Workspace, error) {
-	res, err := g.get(ctx, nil, workspacesPath)
+func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
+	endpoint := fmt.Sprintf("%s/workspace", w.baseEndpoint)
+	res, err := get(ctx, w.apiKey, nil, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}

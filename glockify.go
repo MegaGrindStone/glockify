@@ -10,8 +10,7 @@ import (
 )
 
 type Glockify struct {
-	APIKey   string
-	Endpoint Endpoint
+	Workspace WorkspaceNode
 }
 
 type Endpoint struct {
@@ -30,11 +29,9 @@ const (
 
 func New(apiKey string, opts ...Option) *Glockify {
 	g := &Glockify{
-		APIKey: apiKey,
-		Endpoint: Endpoint{
-			Base:    defaultBaseEndpoint,
-			TimeOff: defaultTimeOffEndpoint,
-			Report:  defaultReportEndpoint,
+		Workspace: WorkspaceNode{
+			baseEndpoint: defaultBaseEndpoint,
+			apiKey:       apiKey,
 		},
 	}
 
@@ -47,29 +44,25 @@ func New(apiKey string, opts ...Option) *Glockify {
 
 func WithEndpoint(endpoint Endpoint) Option {
 	return func(g *Glockify) {
-		e := Endpoint{
-			Base:    defaultBaseEndpoint,
-			TimeOff: defaultTimeOffEndpoint,
-			Report:  defaultReportEndpoint,
-		}
 		if endpoint.Base != "" {
-			e.Base = endpoint.Base
+			g.Workspace.baseEndpoint = endpoint.Base
 		}
 		if endpoint.TimeOff != "" {
-			e.TimeOff = endpoint.TimeOff
+			//e.TimeOff = endpoint.TimeOff
 		}
 		if endpoint.Report != "" {
-			e.Report = endpoint.Report
+			//e.Report = endpoint.Report
 		}
-		g.Endpoint = e
 	}
 }
 
-func (g *Glockify) get(ctx context.Context, params interface{}, endpoint string) ([]byte, error) {
+func get(ctx context.Context, apiKey string, params interface{}, endpoint string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("new request: %w", err)
 	}
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("X-Api-Key", apiKey)
 	encoder := schema.NewEncoder()
 	if err := encoder.Encode(params, req.URL.Query()); err != nil {
 		return nil, fmt.Errorf("scheme encode: %w", err)
