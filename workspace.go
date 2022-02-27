@@ -13,77 +13,80 @@ type WorkspaceNode struct {
 }
 
 type Workspace struct {
-	HourlyRate        HourlyRate        `json:"hourlyRate"`
-	ID                string            `json:"id"`
-	ImageURL          string            `json:"imageUrl"`
-	Memberships       []Memberships     `json:"memberships"`
-	Name              string            `json:"name"`
-	WorkspaceSettings WorkspaceSettings `json:"workspaceSettings"`
+	ID                string            `json:"id,omitempty"`
+	Name              string            `json:"name,omitempty"`
+	HourlyRate        HourlyRate        `json:"hourlyRate,omitempty"`
+	ImageURL          string            `json:"imageUrl,omitempty"`
+	Memberships       []Memberships     `json:"memberships,omitempty"`
+	WorkspaceSettings WorkspaceSettings `json:"workspaceSettings,omitempty"`
 }
 
 type HourlyRate struct {
-	Amount   string `json:"amount"`
-	Currency string `json:"currency"`
+	Amount   int    `json:"amount,omitempty"`
+	Currency string `json:"currency,omitempty"`
 }
 
 type Memberships struct {
-	HourlyRate       HourlyRate `json:"hourlyRate"`
-	MembershipStatus string     `json:"membershipStatus"`
-	MembershipType   string     `json:"membershipType"`
-	TargetID         string     `json:"targetId"`
-	UserID           string     `json:"userId"`
+	HourlyRate       HourlyRate `json:"hourlyRate,omitempty"`
+	MembershipStatus string     `json:"membershipStatus,omitempty"`
+	MembershipType   string     `json:"membershipType,omitempty"`
+	TargetID         string     `json:"targetId,omitempty"`
+	UserID           string     `json:"userId,omitempty"`
 }
 
 type AutomaticLock struct {
-	ChangeDay       string `json:"changeDay"`
-	DayOfMonth      string `json:"dayOfMonth"`
-	FirstDay        string `json:"firstDay"`
-	OlderThanPeriod string `json:"olderThanPeriod"`
-	OlderThanValue  string `json:"olderThanValue"`
-	Type            string `json:"type"`
+	ChangeDay       string `json:"changeDay,omitempty"`
+	DayOfMonth      int    `json:"dayOfMonth,omitempty"`
+	FirstDay        string `json:"firstDay,omitempty"`
+	OlderThanPeriod string `json:"olderThanPeriod,omitempty"`
+	OlderThanValue  int    `json:"olderThanValue,omitempty"`
+	Type            string `json:"type,omitempty"`
 }
 
 type Round struct {
-	Minutes string `json:"minutes"`
-	Round   string `json:"round"`
+	Minutes string `json:"minutes,omitempty"`
+	Round   string `json:"round,omitempty"`
 }
 
 type WorkspaceSettings struct {
-	AdminOnlyPages                     []interface{} `json:"adminOnlyPages"`
-	AutomaticLock                      AutomaticLock `json:"automaticLock"`
-	CanSeeTimeSheet                    string        `json:"canSeeTimeSheet"`
-	CanSeeTracker                      string        `json:"canSeeTracker"`
-	DefaultBillableProjects            string        `json:"defaultBillableProjects"`
-	ForceDescription                   string        `json:"forceDescription"`
-	ForceProjects                      string        `json:"forceProjects"`
-	ForceTags                          string        `json:"forceTags"`
-	ForceTasks                         string        `json:"forceTasks"`
-	LockTimeEntries                    time.Time     `json:"lockTimeEntries"`
-	OnlyAdminsCreateProject            string        `json:"onlyAdminsCreateProject"`
-	OnlyAdminsCreateTag                string        `json:"onlyAdminsCreateTag"`
-	OnlyAdminsCreateTask               string        `json:"onlyAdminsCreateTask"`
-	OnlyAdminsSeeAllTimeEntries        string        `json:"onlyAdminsSeeAllTimeEntries"`
-	OnlyAdminsSeeBillableRates         string        `json:"onlyAdminsSeeBillableRates"`
-	OnlyAdminsSeeDashboard             string        `json:"onlyAdminsSeeDashboard"`
-	OnlyAdminsSeePublicProjectsEntries string        `json:"onlyAdminsSeePublicProjectsEntries"`
-	ProjectFavorites                   string        `json:"projectFavorites"`
-	ProjectGroupingLabel               string        `json:"projectGroupingLabel"`
-	ProjectPickerSpecialFilter         string        `json:"projectPickerSpecialFilter"`
-	Round                              Round         `json:"round"`
-	TimeRoundingInReports              string        `json:"timeRoundingInReports"`
-	TrackTimeDownToSecond              string        `json:"trackTimeDownToSecond"`
-	IsProjectPublicByDefault           string        `json:"isProjectPublicByDefault"`
-	FeatureSubscriptionType            string        `json:"featureSubscriptionType"`
+	AdminOnlyPages                     []interface{} `json:"adminOnlyPages,omitempty"`
+	AutomaticLock                      AutomaticLock `json:"automaticLock,omitempty"`
+	CanSeeTimeSheet                    bool          `json:"canSeeTimeSheet,omitempty"`
+	CanSeeTracker                      bool          `json:"canSeeTracker,omitempty"`
+	DefaultBillableProjects            bool          `json:"defaultBillableProjects,omitempty"`
+	ForceDescription                   bool          `json:"forceDescription,omitempty"`
+	ForceProjects                      bool          `json:"forceProjects,omitempty"`
+	ForceTags                          bool          `json:"forceTags,omitempty"`
+	ForceTasks                         bool          `json:"forceTasks,omitempty"`
+	LockTimeEntries                    time.Time     `json:"lockTimeEntries,omitempty"`
+	OnlyAdminsCreateProject            bool          `json:"onlyAdminsCreateProject,omitempty"`
+	OnlyAdminsCreateTag                bool          `json:"onlyAdminsCreateTag,omitempty"`
+	OnlyAdminsCreateTask               bool          `json:"onlyAdminsCreateTask,omitempty"`
+	OnlyAdminsSeeAllTimeEntries        bool          `json:"onlyAdminsSeeAllTimeEntries,omitempty"`
+	OnlyAdminsSeeBillableRates         bool          `json:"onlyAdminsSeeBillableRates,omitempty"`
+	OnlyAdminsSeeDashboard             bool          `json:"onlyAdminsSeeDashboard,omitempty"`
+	OnlyAdminsSeePublicProjectsEntries bool          `json:"onlyAdminsSeePublicProjectsEntries,omitempty"`
+	ProjectFavorites                   bool          `json:"projectFavorites,omitempty"`
+	ProjectGroupingLabel               string        `json:"projectGroupingLabel,omitempty"`
+	ProjectPickerSpecialFilter         bool          `json:"projectPickerSpecialFilter,omitempty"`
+	Round                              Round         `json:"round,omitempty"`
+	TimeRoundingInReports              bool          `json:"timeRoundingInReports,omitempty"`
+	TrackTimeDownToSecond              bool          `json:"trackTimeDownToSecond,omitempty"`
+	IsProjectPublicByDefault           bool          `json:"isProjectPublicByDefault,omitempty"`
+	FeatureSubscriptionType            string        `json:"featureSubscriptionType,omitempty"`
 }
 
 func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
-	endpoint := fmt.Sprintf("%s/workspace", w.baseEndpoint)
+	endpoint := fmt.Sprintf("%s/workspaces", w.baseEndpoint)
 	res, err := get(ctx, w.apiKey, nil, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
 	result := make([]Workspace, 0)
 	if err := json.Unmarshal(res, &result); err != nil {
+		if jErr, ok := err.(*json.UnmarshalTypeError); ok {
+			return nil, fmt.Errorf("unmarshal field %v of type %v", jErr.Field, jErr.Type)
+		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil

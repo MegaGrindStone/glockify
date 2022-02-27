@@ -2,6 +2,7 @@ package glockify
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/gorilla/schema"
 	"io/ioutil"
@@ -63,9 +64,11 @@ func get(ctx context.Context, apiKey string, params interface{}, endpoint string
 	}
 	req.Header.Set("content-type", "application/json")
 	req.Header.Set("X-Api-Key", apiKey)
-	encoder := schema.NewEncoder()
-	if err := encoder.Encode(params, req.URL.Query()); err != nil {
-		return nil, fmt.Errorf("scheme encode: %w", err)
+	if params != nil {
+		encoder := schema.NewEncoder()
+		if err := encoder.Encode(params, req.URL.Query()); err != nil {
+			return nil, fmt.Errorf("scheme encode: %w", err)
+		}
 	}
 	client := http.Client{}
 	resp, err := client.Do(req)
@@ -77,6 +80,11 @@ func get(ctx context.Context, apiKey string, params interface{}, endpoint string
 			log.Printf(fmt.Errorf("close body: %w", err).Error())
 		}
 	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(fmt.Sprintf("http error: status code %d", resp.StatusCode))
+	}
+
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read body: %w", err)
