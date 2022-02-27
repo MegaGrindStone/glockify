@@ -21,6 +21,8 @@ jobs:
           go-version: 1.17
 
       - name: Test
+        env:
+          CLOCKIFY_TEST_TOKEN: ${{ secrets.CLOCKIFY_TEST_TOKEN }}
         run: go test -v ./...
 
       - name: Build
