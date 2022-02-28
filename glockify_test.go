@@ -28,7 +28,7 @@ func workspaces(w http.ResponseWriter, r *http.Request) {
 		[
 		  {
 			"hourlyRate": {
-			  "amount": "0",
+			  "amount": 0,
 			  "currency": "USD"
 			},
 			"id": "%s",
@@ -36,7 +36,7 @@ func workspaces(w http.ResponseWriter, r *http.Request) {
 			"memberships": [
 			  {
 				"hourlyRate": {
-				  "amount": "15",
+				  "amount": 15,
 				  "currency": "USD"
 				},
 				"membershipStatus": "ACTIVE",

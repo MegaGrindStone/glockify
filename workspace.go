@@ -28,7 +28,7 @@ type Workspace struct {
 
 // HourlyRate see: https://clockify.me/developers-api#tag-Workspace
 type HourlyRate struct {
-	Amount   string `json:"amount,omitempty"`
+	Amount   int    `json:"amount,omitempty"`
 	Currency string `json:"currency,omitempty"`
 }
 
