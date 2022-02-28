@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestGlockify_Workspaces(t *testing.T) {
+func TestWorkspaceNode_All(t *testing.T) {
 	glock := New(clockifyTestToken)
 	ws, err := glock.Workspace.All(context.Background())
 	require.Nil(t, err)

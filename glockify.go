@@ -31,8 +31,12 @@ const (
 func New(apiKey string, opts ...Option) *Glockify {
 	g := &Glockify{
 		Workspace: WorkspaceNode{
-			baseEndpoint: defaultBaseEndpoint,
-			apiKey:       apiKey,
+			endpoint: Endpoint{
+				Base:    defaultBaseEndpoint,
+				TimeOff: defaultTimeOffEndpoint,
+				Report:  defaultReportEndpoint,
+			},
+			apiKey: apiKey,
 		},
 	}
 
@@ -46,13 +50,13 @@ func New(apiKey string, opts ...Option) *Glockify {
 func WithEndpoint(endpoint Endpoint) Option {
 	return func(g *Glockify) {
 		if endpoint.Base != "" {
-			g.Workspace.baseEndpoint = endpoint.Base
+			g.Workspace.endpoint.Base = endpoint.Base
 		}
 		if endpoint.TimeOff != "" {
-			//e.TimeOff = endpoint.TimeOff
+			g.Workspace.endpoint.TimeOff = endpoint.TimeOff
 		}
 		if endpoint.Report != "" {
-			//e.Report = endpoint.Report
+			g.Workspace.endpoint.Report = endpoint.Report
 		}
 	}
 }
