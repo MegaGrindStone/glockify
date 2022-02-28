@@ -28,7 +28,7 @@ type Workspace struct {
 
 // HourlyRate see: https://clockify.me/developers-api#tag-Workspace
 type HourlyRate struct {
-	Amount   int    `json:"amount,omitempty"`
+	Amount   string `json:"amount,omitempty"`
 	Currency string `json:"currency,omitempty"`
 }
 
@@ -44,10 +44,10 @@ type Memberships struct {
 // AutomaticLock see: https://clockify.me/developers-api#tag-Workspace
 type AutomaticLock struct {
 	ChangeDay       string `json:"changeDay,omitempty"`
-	DayOfMonth      int    `json:"dayOfMonth,omitempty"`
+	DayOfMonth      string `json:"dayOfMonth,omitempty"`
 	FirstDay        string `json:"firstDay,omitempty"`
 	OlderThanPeriod string `json:"olderThanPeriod,omitempty"`
-	OlderThanValue  int    `json:"olderThanValue,omitempty"`
+	OlderThanValue  string `json:"olderThanValue,omitempty"`
 	Type            string `json:"type,omitempty"`
 }
 
