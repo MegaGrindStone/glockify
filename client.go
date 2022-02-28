@@ -28,13 +28,13 @@ type ClientFilter struct {
 	SortOrder  string `schema:"sort-order"`
 }
 
-func (c *ClientNode) All(ctx context.Context, filter ClientFilter) ([]Workspace, error) {
+func (c *ClientNode) All(ctx context.Context, filter ClientFilter) ([]Client, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/clients", c.baseEndpoint, c.workspaceID)
 	res, err := get(ctx, c.apiKey, filter, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
-	result := make([]Workspace, 0)
+	result := make([]Client, 0)
 	if err := json.Unmarshal(res, &result); err != nil {
 		if jErr, ok := err.(*json.UnmarshalTypeError); ok {
 			return nil, fmt.Errorf("unmarshal field %v of type %v", jErr.Field, jErr.Type)
