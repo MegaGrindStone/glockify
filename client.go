@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// ClientNode incorporating every Client resource request.
+// ClientNode manipulating Client resource.
 type ClientNode struct {
 	workspaceID  string
 	baseEndpoint string
@@ -23,14 +23,25 @@ type Client struct {
 }
 
 // ClientAllFilter is used for All request.
-// See: https://clockify.me/developers-api#tag-Client
 type ClientAllFilter struct {
-	Archived   bool   `schema:"archived"`
-	Name       string `schema:"name"`
-	Page       int    `schema:"page"`
-	PageSize   int    `schema:"page-size"`
+	// Archived if true, you'll get only archived clients.
+	// If false, you'll get only active clients.
+	Archived bool `schema:"archived"`
+
+	// Name if provided, clients will be filtered by name
+	Name string `schema:"name"`
+
+	Page int `schema:"page"`
+
+	// PageSize max page-size 5000
+	// Default 50
+	PageSize int `schema:"page-size"`
+
+	// SortColumn possible values is "NAME"
 	SortColumn string `schema:"sort-column"`
-	SortOrder  string `schema:"sort-order"`
+
+	// SortOrder possible values is "ASCENDING", "DESCENDING"
+	SortOrder string `schema:"sort-order"`
 }
 
 // ClientAddFields is used for Add request.
@@ -47,8 +58,9 @@ type ClientUpdateFields struct {
 }
 
 // ClientUpdateOptions is used for Update request.
-// See: https://clockify.me/developers-api#tag-Client
 type ClientUpdateOptions struct {
+	// ArchiveProjects controls whether archiving client will result in archiving
+	// all projects of given client.
 	ArchiveProjects bool `scheme:"archive-projects"`
 }
 
