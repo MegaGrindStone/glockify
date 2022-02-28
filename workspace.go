@@ -7,11 +7,14 @@ import (
 	"time"
 )
 
+// WorkspaceNode incorporating every Workspace resource request.
 type WorkspaceNode struct {
 	endpoint Endpoint
 	apiKey   string
 }
 
+// Workspace wraps Clockify's workspace resource.
+// See: https://clockify.me/developers-api#tag-Workspace
 type Workspace struct {
 	ID                string            `json:"id,omitempty"`
 	Name              string            `json:"name,omitempty"`
@@ -23,11 +26,13 @@ type Workspace struct {
 	Client ClientNode `json:"-"`
 }
 
+// HourlyRate see: https://clockify.me/developers-api#tag-Workspace
 type HourlyRate struct {
 	Amount   int    `json:"amount,omitempty"`
 	Currency string `json:"currency,omitempty"`
 }
 
+// Memberships see: https://clockify.me/developers-api#tag-Workspace
 type Memberships struct {
 	HourlyRate       HourlyRate `json:"hourlyRate,omitempty"`
 	MembershipStatus string     `json:"membershipStatus,omitempty"`
@@ -36,6 +41,7 @@ type Memberships struct {
 	UserID           string     `json:"userId,omitempty"`
 }
 
+// AutomaticLock see: https://clockify.me/developers-api#tag-Workspace
 type AutomaticLock struct {
 	ChangeDay       string `json:"changeDay,omitempty"`
 	DayOfMonth      int    `json:"dayOfMonth,omitempty"`
@@ -45,11 +51,13 @@ type AutomaticLock struct {
 	Type            string `json:"type,omitempty"`
 }
 
+// Round see: https://clockify.me/developers-api#tag-Workspace
 type Round struct {
 	Minutes string `json:"minutes,omitempty"`
 	Round   string `json:"round,omitempty"`
 }
 
+// WorkspaceSettings see: https://clockify.me/developers-api#tag-Workspace
 type WorkspaceSettings struct {
 	AdminOnlyPages                     []interface{} `json:"adminOnlyPages,omitempty"`
 	AutomaticLock                      AutomaticLock `json:"automaticLock,omitempty"`
@@ -78,6 +86,8 @@ type WorkspaceSettings struct {
 	FeatureSubscriptionType            string        `json:"featureSubscriptionType,omitempty"`
 }
 
+// All get all Workspace resource.
+// See: https://clockify.me/developers-api#tag-Workspace
 func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
 	endpoint := fmt.Sprintf("%s/workspaces", w.endpoint.Base)
 	res, err := get(ctx, w.apiKey, nil, endpoint)
