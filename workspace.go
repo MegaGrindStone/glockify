@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// WorkspaceNode incorporating every Workspace resource request.
+// WorkspaceNode manipulating Workspace resource.
 type WorkspaceNode struct {
 	endpoint Endpoint
 	apiKey   string
@@ -87,7 +87,6 @@ type WorkspaceSettings struct {
 }
 
 // All get all Workspace resource.
-// See: https://clockify.me/developers-api#tag-Workspace
 func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
 	endpoint := fmt.Sprintf("%s/workspaces", w.endpoint.Base)
 	res, err := get(ctx, w.apiKey, nil, endpoint)
