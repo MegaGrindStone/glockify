@@ -10,16 +10,19 @@ import (
 	"net/http"
 )
 
+// Glockify is an entry point to access Clockify API.
 type Glockify struct {
 	Workspace WorkspaceNode
 }
 
+// Endpoint specify main endpoints in Clockify.
 type Endpoint struct {
 	Base    string
 	TimeOff string
 	Report  string
 }
 
+// Option control parameter that can given when creating new Glockify.
 type Option func(*Glockify)
 
 const (
@@ -28,6 +31,7 @@ const (
 	defaultReportEndpoint  = "https://pto.api.clockify.me/v1"
 )
 
+// New instantiate Glockify with apiKey given.
 func New(apiKey string, opts ...Option) *Glockify {
 	g := &Glockify{
 		Workspace: WorkspaceNode{
@@ -47,6 +51,7 @@ func New(apiKey string, opts ...Option) *Glockify {
 	return g
 }
 
+// WithEndpoint set endpoint when creating new Glockify.
 func WithEndpoint(endpoint Endpoint) Option {
 	return func(g *Glockify) {
 		if endpoint.Base != "" {
