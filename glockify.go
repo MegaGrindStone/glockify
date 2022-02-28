@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/gorilla/schema"
 	"io/ioutil"
@@ -93,7 +92,7 @@ func get(ctx context.Context, apiKey string, params interface{}, endpoint string
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("http error: status code %d", resp.StatusCode))
+		return nil, fmt.Errorf("http error: status code %d", resp.StatusCode)
 	}
 
 	respBytes, err := ioutil.ReadAll(resp.Body)
@@ -133,7 +132,7 @@ func post(ctx context.Context, apiKey string, params interface{}, body interface
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("http error: status code %d", resp.StatusCode))
+		return nil, fmt.Errorf("http error: status code %d", resp.StatusCode)
 	}
 
 	respBytes, err := ioutil.ReadAll(resp.Body)
@@ -173,7 +172,7 @@ func put(ctx context.Context, apiKey string, params interface{}, body interface{
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("http error: status code %d", resp.StatusCode))
+		return nil, fmt.Errorf("http error: status code %d", resp.StatusCode)
 	}
 
 	respBytes, err := ioutil.ReadAll(resp.Body)
@@ -202,7 +201,7 @@ func del(ctx context.Context, apiKey string, endpoint string) ([]byte, error) {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("http error: status code %d", resp.StatusCode))
+		return nil, fmt.Errorf("http error: status code %d", resp.StatusCode)
 	}
 
 	respBytes, err := ioutil.ReadAll(resp.Body)
