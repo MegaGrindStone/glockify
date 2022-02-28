@@ -43,3 +43,19 @@ func (c *ClientNode) All(ctx context.Context, filter ClientFilter) ([]Client, er
 	}
 	return result, nil
 }
+
+func (c *ClientNode) Get(ctx context.Context, id string) (*Client, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.baseEndpoint, c.workspaceID, id)
+	res, err := get(ctx, c.apiKey, nil, endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("get: %w", err)
+	}
+	result := new(Client)
+	if err := json.Unmarshal(res, &result); err != nil {
+		if jErr, ok := err.(*json.UnmarshalTypeError); ok {
+			return nil, fmt.Errorf("unmarshal field %v of type %v", jErr.Field, jErr.Type)
+		}
+		return nil, fmt.Errorf("json unmarshal: %w", err)
+	}
+	return result, nil
+}
