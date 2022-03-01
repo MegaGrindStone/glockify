@@ -93,15 +93,6 @@ type BudgetEstimate struct {
 	Active      bool   `json:"active,omitempty"`
 }
 
-func (p *Project) setupNode(apiKey string, endpoint string) {
-	p.Task = TaskNode{
-		workspaceID:  p.WorkspaceID,
-		projectID:    p.ID,
-		baseEndpoint: endpoint,
-		apiKey:       apiKey,
-	}
-}
-
 // ProjectAllFilter is used for All request.
 type ProjectAllFilter struct {
 	// Hydrated If true, you'll get custom fields, tasks, and memberships of all projects.
@@ -238,9 +229,6 @@ func (p *ProjectNode) All(ctx context.Context, workspaceID string,
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	for i := 0; i < len(result); i++ {
-		result[i].setupNode(p.apiKey, p.endpoint)
-	}
 	return result, nil
 }
 
@@ -258,7 +246,6 @@ func (p *ProjectNode) Get(ctx context.Context, workspaceID string, id string) (*
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
@@ -277,7 +264,6 @@ func (p *ProjectNode) Add(ctx context.Context, workspaceID string,
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
@@ -296,7 +282,6 @@ func (p *ProjectNode) Update(ctx context.Context, workspaceID string, id string,
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
@@ -316,7 +301,6 @@ func (p *ProjectNode) UpdateEstimate(ctx context.Context, workspaceID string, id
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
@@ -336,7 +320,6 @@ func (p *ProjectNode) UpdateMemberships(ctx context.Context, workspaceID string,
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
@@ -356,7 +339,6 @@ func (p *ProjectNode) UpdateTemplate(ctx context.Context, workspaceID string, id
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
@@ -375,6 +357,5 @@ func (p *ProjectNode) Delete(ctx context.Context, workspaceID string, id string)
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }

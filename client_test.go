@@ -262,7 +262,7 @@ func (s *ClientTestSuite) TestAll() {
 
 	s.server.addClients(ws[0].ID, 5)
 
-	cs, err := ws[0].Client.All(ctx, ClientAllFilter{})
+	cs, err := glock.Client.All(ctx, ws[0].ID, ClientAllFilter{})
 	require.Nil(s.T(), err)
 	require.Len(s.T(), cs, 5)
 }
@@ -279,7 +279,7 @@ func (s *ClientTestSuite) TestGet() {
 
 	s.server.addClients(ws[0].ID, 1)
 
-	c, err := ws[0].Client.Get(ctx, "1")
+	c, err := glock.Client.Get(ctx, ws[0].ID, "1")
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), "Client 1", c.Name)
 }
@@ -296,11 +296,11 @@ func (s *ClientTestSuite) TestAdd() {
 
 	wantName := "Dummy Name"
 
-	c, err := ws[0].Client.Add(ctx, ClientAddFields{Name: wantName})
+	c, err := glock.Client.Add(ctx, ws[0].ID, ClientAddFields{Name: wantName})
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), wantName, c.Name)
 
-	newC, err := ws[0].Client.Get(ctx, c.ID)
+	newC, err := glock.Client.Get(ctx, ws[0].ID, c.ID)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), wantName, newC.Name)
 }
@@ -317,11 +317,11 @@ func (s *ClientTestSuite) TestUpdate() {
 
 	s.server.addClients(ws[0].ID, 1)
 
-	c, err := ws[0].Client.Get(ctx, "1")
+	c, err := glock.Client.Get(ctx, ws[0].ID, "1")
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), "Client 1", c.Name)
 
-	uc, err := ws[0].Client.Update(ctx, c.ID, ClientUpdateFields{
+	uc, err := glock.Client.Update(ctx, ws[0].ID, c.ID, ClientUpdateFields{
 		Name: "Client 2",
 	}, ClientUpdateOptions{})
 	require.Nil(s.T(), err)
@@ -340,11 +340,11 @@ func (s *ClientTestSuite) TestDelete() {
 
 	s.server.addClients(ws[0].ID, 5)
 
-	c, err := ws[0].Client.Delete(ctx, "1")
+	c, err := glock.Client.Delete(ctx, ws[0].ID, "1")
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), "Client 1", c.Name)
 
-	cs, err := ws[0].Client.All(ctx, ClientAllFilter{})
+	cs, err := glock.Client.All(ctx, ws[0].ID, ClientAllFilter{})
 	require.Nil(s.T(), err)
 	require.Len(s.T(), cs, 4)
 }
