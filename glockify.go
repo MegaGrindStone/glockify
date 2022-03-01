@@ -131,7 +131,7 @@ func post(ctx context.Context, apiKey string, params interface{}, body interface
 		}
 	}()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("http error: status code %d", resp.StatusCode)
 	}
 
