@@ -87,6 +87,19 @@ type WorkspaceSettings struct {
 	FeatureSubscriptionType            string        `json:"featureSubscriptionType,omitempty"`
 }
 
+func (w *Workspace) setupNode(apiKey string, endpoint Endpoint) {
+	w.Client = ClientNode{
+		workspaceID:  w.ID,
+		baseEndpoint: endpoint.Base,
+		apiKey:       apiKey,
+	}
+	w.Project = ProjectNode{
+		workspaceID:  w.ID,
+		baseEndpoint: endpoint.Base,
+		apiKey:       apiKey,
+	}
+}
+
 // All get all Workspace resource.
 func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
 	endpoint := fmt.Sprintf("%s/workspaces", w.endpoint.Base)
@@ -102,11 +115,7 @@ func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	for i := 0; i < len(result); i++ {
-		result[i].Client = ClientNode{
-			workspaceID:  result[i].ID,
-			baseEndpoint: w.endpoint.Base,
-			apiKey:       w.apiKey,
-		}
+		result[i].setupNode(w.apiKey, w.endpoint)
 	}
 	return result, nil
 }
