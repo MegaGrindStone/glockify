@@ -22,7 +22,7 @@ type Task struct {
 	ID          string     `json:"id,omitempty"`
 	Name        string     `json:"name,omitempty"`
 	ProjectID   string     `json:"projectId,omitempty"`
-	Billable    string     `json:"billable,omitempty"`
+	Billable    bool       `json:"billable,omitempty"`
 	HourlyRate  HourlyRate `json:"hourlyRate,omitempty"`
 	CostRate    CostRate   `json:"costRate,omitempty"`
 	Status      string     `json:"status,omitempty"`
