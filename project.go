@@ -15,28 +15,28 @@ type ProjectNode struct {
 
 // Project wraps Clockify's project resource.
 // See: https://clockify.me/developers-api#tag-Project
-type Project []struct {
-	ID           string        `json:"id,omitempty"`
-	Name         string        `json:"name,omitempty"`
-	HourlyRate   HourlyRate    `json:"hourlyRate,omitempty"`
-	ClientID     string        `json:"clientId,omitempty"`
-	Client       string        `json:"client,omitempty"`
-	WorkspaceID  string        `json:"workspaceId,omitempty"`
-	Billable     bool          `json:"billable,omitempty"`
-	Memberships  []Memberships `json:"memberships,omitempty"`
-	Color        string        `json:"color,omitempty"`
-	Estimate     Estimate      `json:"estimate,omitempty"`
-	Archived     bool          `json:"archived,omitempty"`
-	Tasks        []Tasks       `json:"tasks,omitempty"`
-	Note         string        `json:"note,omitempty"`
-	Duration     string        `json:"duration,omitempty"`
-	CostRate     int           `json:"costRate,omitempty"`
-	TimeEstimate TimeEstimate  `json:"timeEstimate,omitempty"`
-	//BudgetEstimate interface{}    `json:"budgetEstimate"`
-	CustomFields []CustomFields `json:"customFields,omitempty"`
-	Public       bool           `json:"public,omitempty"`
-	Template     bool           `json:"template,omitempty"`
-	Favorite     bool           `json:"favorite,omitempty"`
+type Project struct {
+	ID             string         `json:"id,omitempty"`
+	Name           string         `json:"name,omitempty"`
+	HourlyRate     HourlyRate     `json:"hourlyRate,omitempty"`
+	ClientID       string         `json:"clientId,omitempty"`
+	Client         string         `json:"client,omitempty"`
+	WorkspaceID    string         `json:"workspaceId,omitempty"`
+	Billable       bool           `json:"billable,omitempty"`
+	Memberships    []Memberships  `json:"memberships,omitempty"`
+	Color          string         `json:"color,omitempty"`
+	Estimate       Estimate       `json:"estimate,omitempty"`
+	Archived       bool           `json:"archived,omitempty"`
+	Tasks          []Tasks        `json:"tasks,omitempty"`
+	Note           string         `json:"note,omitempty"`
+	Duration       string         `json:"duration,omitempty"`
+	CostRate       int            `json:"costRate,omitempty"`
+	TimeEstimate   TimeEstimate   `json:"timeEstimate,omitempty"`
+	BudgetEstimate BudgetEstimate `json:"budgetEstimate"`
+	CustomFields   []CustomFields `json:"customFields,omitempty"`
+	Public         bool           `json:"public,omitempty"`
+	Template       bool           `json:"template,omitempty"`
+	Favorite       bool           `json:"favorite,omitempty"`
 }
 
 // Estimate wraps Clockify's estimate resource.
