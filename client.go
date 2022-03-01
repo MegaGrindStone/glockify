@@ -31,6 +31,7 @@ type ClientAllFilter struct {
 	// Name if provided, clients will be filtered by name
 	Name string `schema:"name"`
 
+	// Page default 1
 	Page int `schema:"page"`
 
 	// PageSize max page-size 5000
@@ -81,7 +82,7 @@ func (c *ClientNode) All(ctx context.Context, filter ClientAllFilter) ([]Client,
 	return result, nil
 }
 
-// Get one client by its id.
+// Get one Client by its id.
 func (c *ClientNode) Get(ctx context.Context, id string) (*Client, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.baseEndpoint, c.workspaceID, id)
 	res, err := get(ctx, c.apiKey, nil, endpoint)

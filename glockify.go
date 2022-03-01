@@ -182,6 +182,46 @@ func put(ctx context.Context, apiKey string, params interface{}, body interface{
 	return respBytes, nil
 }
 
+func patch(ctx context.Context, apiKey string, params interface{}, body interface{},
+	endpoint string) ([]byte, error) {
+	bodyJSON, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("json marshal: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, "PATCH", endpoint, bytes.NewBuffer(bodyJSON))
+	if err != nil {
+		return nil, fmt.Errorf("new request: %w", err)
+	}
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("X-Api-Key", apiKey)
+	if params != nil {
+		encoder := schema.NewEncoder()
+		if err := encoder.Encode(params, req.URL.Query()); err != nil {
+			return nil, fmt.Errorf("scheme encode: %w", err)
+		}
+	}
+	client := http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("do: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf(fmt.Errorf("close body: %w", err).Error())
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http error: status code %d", resp.StatusCode)
+	}
+
+	respBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body: %w", err)
+	}
+	return respBytes, nil
+}
+
 func del(ctx context.Context, apiKey string, endpoint string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, "DELETE", endpoint, nil)
 	if err != nil {
