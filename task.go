@@ -55,7 +55,7 @@ type TaskAllFilter struct {
 // TaskAddFields is used for Add request.
 // See: https://clockify.me/developers-api#tag-Task
 type TaskAddFields struct {
-	Name        string   `json:"name,omitempty"`
+	Name        string   `json:"name"`
 	AssigneeIds []string `json:"assigneeIds,omitempty"`
 	Estimate    string   `json:"estimate,omitempty"`
 	Status      string   `json:"status,omitempty"`
@@ -64,7 +64,7 @@ type TaskAddFields struct {
 // TaskUpdateFields is used for Update request.
 // See: https://clockify.me/developers-api#tag-Task
 type TaskUpdateFields struct {
-	Name        string   `json:"name"`
+	Name        string   `json:"name,omitempty"`
 	AssigneeIds []string `json:"assigneeIds,omitempty"`
 	Estimate    string   `json:"estimate,omitempty"`
 	Billable    bool     `json:"billable,omitempty"`
