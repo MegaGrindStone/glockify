@@ -9,7 +9,7 @@ import (
 
 // WorkspaceNode manipulating Workspace resource.
 type WorkspaceNode struct {
-	endpoint Endpoint
+	endpoint string
 	apiKey   string
 }
 
@@ -22,9 +22,6 @@ type Workspace struct {
 	ImageURL          string            `json:"imageUrl,omitempty"`
 	Memberships       []Memberships     `json:"memberships,omitempty"`
 	WorkspaceSettings WorkspaceSettings `json:"workspaceSettings,omitempty"`
-
-	Client  ClientNode  `json:"-"`
-	Project ProjectNode `json:"-"`
 }
 
 // HourlyRate see: https://clockify.me/developers-api#tag-Workspace
@@ -87,22 +84,9 @@ type WorkspaceSettings struct {
 	FeatureSubscriptionType            string        `json:"featureSubscriptionType,omitempty"`
 }
 
-func (w *Workspace) setupNode(apiKey string, endpoint Endpoint) {
-	w.Client = ClientNode{
-		workspaceID:  w.ID,
-		baseEndpoint: endpoint.Base,
-		apiKey:       apiKey,
-	}
-	w.Project = ProjectNode{
-		workspaceID:  w.ID,
-		baseEndpoint: endpoint.Base,
-		apiKey:       apiKey,
-	}
-}
-
 // All get all Workspace resource.
 func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
-	endpoint := fmt.Sprintf("%s/workspaces", w.endpoint.Base)
+	endpoint := fmt.Sprintf("%s/workspaces", w.endpoint)
 	res, err := get(ctx, w.apiKey, nil, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
@@ -113,9 +97,6 @@ func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
 			return nil, fmt.Errorf("unmarshal field %v of type %v", jErr.Field, jErr.Type)
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
-	}
-	for i := 0; i < len(result); i++ {
-		result[i].setupNode(w.apiKey, w.endpoint)
 	}
 	return result, nil
 }
