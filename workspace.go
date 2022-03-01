@@ -23,7 +23,8 @@ type Workspace struct {
 	Memberships       []Memberships     `json:"memberships,omitempty"`
 	WorkspaceSettings WorkspaceSettings `json:"workspaceSettings,omitempty"`
 
-	Client ClientNode `json:"-"`
+	Client  ClientNode  `json:"-"`
+	Project ProjectNode `json:"-"`
 }
 
 // HourlyRate see: https://clockify.me/developers-api#tag-Workspace
