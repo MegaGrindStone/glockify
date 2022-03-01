@@ -14,6 +14,10 @@ import (
 // Glockify is an entry point to access Clockify API.
 type Glockify struct {
 	Workspace WorkspaceNode
+	Client    ClientNode
+	Project   ProjectNode
+
+	apiKey string
 }
 
 // Endpoint specify main endpoints in Clockify.
@@ -35,15 +39,13 @@ const (
 // New instantiate Glockify with apiKey given.
 func New(apiKey string, opts ...Option) *Glockify {
 	g := &Glockify{
-		Workspace: WorkspaceNode{
-			endpoint: Endpoint{
-				Base:    defaultBaseEndpoint,
-				TimeOff: defaultTimeOffEndpoint,
-				Report:  defaultReportEndpoint,
-			},
-			apiKey: apiKey,
-		},
+		apiKey: apiKey,
 	}
+	g.setupNode(Endpoint{
+		Base:    defaultBaseEndpoint,
+		TimeOff: defaultTimeOffEndpoint,
+		Report:  defaultReportEndpoint,
+	})
 
 	for _, opt := range opts {
 		opt(g)
@@ -52,18 +54,39 @@ func New(apiKey string, opts ...Option) *Glockify {
 	return g
 }
 
+func (g *Glockify) setupNode(endpoint Endpoint) {
+	g.Workspace = WorkspaceNode{
+		endpoint: endpoint.Base,
+		apiKey:   g.apiKey,
+	}
+	g.Client = ClientNode{
+		endpoint: endpoint.Base,
+		apiKey:   g.apiKey,
+	}
+	g.Project = ProjectNode{
+		endpoint: endpoint.Base,
+		apiKey:   g.apiKey,
+	}
+}
+
 // WithEndpoint set endpoint when creating new Glockify.
 func WithEndpoint(endpoint Endpoint) Option {
 	return func(g *Glockify) {
+		defaultEndpoint := Endpoint{
+			Base:    defaultBaseEndpoint,
+			TimeOff: defaultTimeOffEndpoint,
+			Report:  defaultReportEndpoint,
+		}
 		if endpoint.Base != "" {
-			g.Workspace.endpoint.Base = endpoint.Base
+			defaultEndpoint.Base = endpoint.Base
 		}
 		if endpoint.TimeOff != "" {
-			g.Workspace.endpoint.TimeOff = endpoint.TimeOff
+			defaultEndpoint.TimeOff = endpoint.TimeOff
 		}
 		if endpoint.Report != "" {
-			g.Workspace.endpoint.Report = endpoint.Report
+			defaultEndpoint.Report = endpoint.Report
 		}
+		g.setupNode(defaultEndpoint)
 	}
 }
 

@@ -8,9 +8,8 @@ import (
 
 // ProjectNode manipulating Project resource.
 type ProjectNode struct {
-	workspaceID  string
-	baseEndpoint string
-	apiKey       string
+	endpoint string
+	apiKey   string
 }
 
 // Project wraps Clockify's project resource.
@@ -225,8 +224,9 @@ type ProjectUpdateEstimateOptions struct {
 }
 
 // All get all Project resource based on filter given.
-func (p *ProjectNode) All(ctx context.Context, filter ProjectAllFilter) ([]Project, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects", p.baseEndpoint, p.workspaceID)
+func (p *ProjectNode) All(ctx context.Context, workspaceID string,
+	filter ProjectAllFilter) ([]Project, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects", p.endpoint, workspaceID)
 	res, err := get(ctx, p.apiKey, filter, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
@@ -239,14 +239,14 @@ func (p *ProjectNode) All(ctx context.Context, filter ProjectAllFilter) ([]Proje
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	for i := 0; i < len(result); i++ {
-		result[i].setupNode(p.apiKey, p.baseEndpoint)
+		result[i].setupNode(p.apiKey, p.endpoint)
 	}
 	return result, nil
 }
 
 // Get one Project by its id.
-func (p *ProjectNode) Get(ctx context.Context, id string) (*Project, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.baseEndpoint, p.workspaceID, id)
+func (p *ProjectNode) Get(ctx context.Context, workspaceID string, id string) (*Project, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.endpoint, workspaceID, id)
 	res, err := get(ctx, p.apiKey, nil, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
@@ -258,13 +258,14 @@ func (p *ProjectNode) Get(ctx context.Context, id string) (*Project, error) {
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.baseEndpoint)
+	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
 // Add create new Project based on fields given.
-func (p *ProjectNode) Add(ctx context.Context, fields ProjectAddFields) (*Project, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects", p.baseEndpoint, p.workspaceID)
+func (p *ProjectNode) Add(ctx context.Context, workspaceID string,
+	fields ProjectAddFields) (*Project, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects", p.endpoint, workspaceID)
 	res, err := post(ctx, p.apiKey, nil, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("post: %w", err)
@@ -276,14 +277,14 @@ func (p *ProjectNode) Add(ctx context.Context, fields ProjectAddFields) (*Projec
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.baseEndpoint)
+	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
 // Update existing Project based on fields and options given.
-func (p *ProjectNode) Update(ctx context.Context, id string, fields ProjectUpdateFields,
-	options ProjectUpdateOptions) (*Project, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.baseEndpoint, p.workspaceID, id)
+func (p *ProjectNode) Update(ctx context.Context, workspaceID string, id string,
+	fields ProjectUpdateFields, options ProjectUpdateOptions) (*Project, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.endpoint, workspaceID, id)
 	res, err := put(ctx, p.apiKey, options, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
@@ -295,15 +296,15 @@ func (p *ProjectNode) Update(ctx context.Context, id string, fields ProjectUpdat
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.baseEndpoint)
+	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
 // UpdateEstimate update existing Project's estimate based on fields and options given.
-func (p *ProjectNode) UpdateEstimate(ctx context.Context, id string,
+func (p *ProjectNode) UpdateEstimate(ctx context.Context, workspaceID string, id string,
 	fields ProjectUpdateEstimateFields, options ProjectUpdateEstimateOptions) (*Project, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/estimate", p.baseEndpoint,
-		p.workspaceID, id)
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/estimate", p.endpoint,
+		workspaceID, id)
 	res, err := patch(ctx, p.apiKey, options, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
@@ -315,15 +316,15 @@ func (p *ProjectNode) UpdateEstimate(ctx context.Context, id string,
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.baseEndpoint)
+	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
 // UpdateMemberships update existing Project's memberships based on fields given.
-func (p *ProjectNode) UpdateMemberships(ctx context.Context, id string,
+func (p *ProjectNode) UpdateMemberships(ctx context.Context, workspaceID string, id string,
 	fields ProjectUpdateMembershipsFields) (*Project, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/memberships", p.baseEndpoint,
-		p.workspaceID, id)
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/memberships", p.endpoint,
+		workspaceID, id)
 	res, err := patch(ctx, p.apiKey, nil, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
@@ -335,15 +336,15 @@ func (p *ProjectNode) UpdateMemberships(ctx context.Context, id string,
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.baseEndpoint)
+	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
 // UpdateTemplate update existing Project's template based on fields options given.
-func (p *ProjectNode) UpdateTemplate(ctx context.Context, id string,
+func (p *ProjectNode) UpdateTemplate(ctx context.Context, workspaceID string, id string,
 	fields ProjectUpdateTemplateFields) (*Project, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/template", p.baseEndpoint,
-		p.workspaceID, id)
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/template", p.endpoint,
+		workspaceID, id)
 	res, err := patch(ctx, p.apiKey, nil, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
@@ -355,13 +356,14 @@ func (p *ProjectNode) UpdateTemplate(ctx context.Context, id string,
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.baseEndpoint)
+	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }
 
 // Delete existing Project.
-func (p *ProjectNode) Delete(ctx context.Context, id string) (*Project, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.baseEndpoint, p.workspaceID, id)
+func (p *ProjectNode) Delete(ctx context.Context, workspaceID string, id string) (*Project,
+	error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.endpoint, workspaceID, id)
 	res, err := del(ctx, p.apiKey, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("del: %w", err)
@@ -373,6 +375,6 @@ func (p *ProjectNode) Delete(ctx context.Context, id string) (*Project, error) {
 		}
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
-	result.setupNode(p.apiKey, p.baseEndpoint)
+	result.setupNode(p.apiKey, p.endpoint)
 	return result, nil
 }

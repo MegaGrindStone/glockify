@@ -8,10 +8,8 @@ import (
 
 // TaskNode manipulating Task resource.
 type TaskNode struct {
-	workspaceID  string
-	projectID    string
-	baseEndpoint string
-	apiKey       string
+	endpoint string
+	apiKey   string
 }
 
 // Task wraps Clockify's task resource.
@@ -72,9 +70,10 @@ type TaskUpdateFields struct {
 }
 
 // All get all Task resource based on filter given.
-func (t *TaskNode) All(ctx context.Context, filter TaskAllFilter) ([]Task, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks", t.baseEndpoint,
-		t.workspaceID, t.projectID)
+func (t *TaskNode) All(ctx context.Context, workspaceID string, projectID string,
+	filter TaskAllFilter) ([]Task, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks", t.endpoint,
+		workspaceID, projectID)
 	res, err := get(ctx, t.apiKey, filter, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
@@ -90,9 +89,10 @@ func (t *TaskNode) All(ctx context.Context, filter TaskAllFilter) ([]Task, error
 }
 
 // Get one Task by its id.
-func (t *TaskNode) Get(ctx context.Context, id string) (*Task, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks/%s", t.baseEndpoint, t.workspaceID,
-		t.projectID, id)
+func (t *TaskNode) Get(ctx context.Context, workspaceID string, projectID string,
+	id string) (*Task, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks/%s", t.endpoint, workspaceID,
+		projectID, id)
 	res, err := get(ctx, t.apiKey, nil, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
@@ -108,9 +108,10 @@ func (t *TaskNode) Get(ctx context.Context, id string) (*Task, error) {
 }
 
 // Add create new Task based on fields given.
-func (t *TaskNode) Add(ctx context.Context, fields TaskAddFields) (*Task, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks", t.baseEndpoint,
-		t.workspaceID, t.projectID)
+func (t *TaskNode) Add(ctx context.Context, workspaceID string, projectID string,
+	fields TaskAddFields) (*Task, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks", t.endpoint,
+		workspaceID, projectID)
 	res, err := post(ctx, t.apiKey, nil, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("post: %w", err)
@@ -126,9 +127,10 @@ func (t *TaskNode) Add(ctx context.Context, fields TaskAddFields) (*Task, error)
 }
 
 // Update existing Task based on fields and options given.
-func (t *TaskNode) Update(ctx context.Context, id string, fields TaskUpdateFields) (*Task, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks/%s", t.baseEndpoint,
-		t.workspaceID, t.projectID, id)
+func (t *TaskNode) Update(ctx context.Context, workspaceID string, projectID string, id string,
+	fields TaskUpdateFields) (*Task, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks/%s", t.endpoint,
+		workspaceID, projectID, id)
 	res, err := put(ctx, t.apiKey, nil, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
@@ -144,9 +146,10 @@ func (t *TaskNode) Update(ctx context.Context, id string, fields TaskUpdateField
 }
 
 // Delete existing Task.
-func (t *TaskNode) Delete(ctx context.Context, id string) (*Task, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/task/%s", t.baseEndpoint,
-		t.workspaceID, t.projectID, id)
+func (t *TaskNode) Delete(ctx context.Context, workspaceID string, projectID string,
+	id string) (*Task, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/task/%s", t.endpoint,
+		workspaceID, projectID, id)
 	res, err := del(ctx, t.apiKey, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("del: %w", err)

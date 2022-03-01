@@ -8,9 +8,8 @@ import (
 
 // ClientNode manipulating Client resource.
 type ClientNode struct {
-	workspaceID  string
-	baseEndpoint string
-	apiKey       string
+	endpoint string
+	apiKey   string
 }
 
 // Client wraps Clockify's client resource.
@@ -66,8 +65,9 @@ type ClientUpdateOptions struct {
 }
 
 // All get all Client resource based on filter given.
-func (c *ClientNode) All(ctx context.Context, filter ClientAllFilter) ([]Client, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/clients", c.baseEndpoint, c.workspaceID)
+func (c *ClientNode) All(ctx context.Context, workspaceID string,
+	filter ClientAllFilter) ([]Client, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/clients", c.endpoint, workspaceID)
 	res, err := get(ctx, c.apiKey, filter, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
@@ -83,8 +83,8 @@ func (c *ClientNode) All(ctx context.Context, filter ClientAllFilter) ([]Client,
 }
 
 // Get one Client by its id.
-func (c *ClientNode) Get(ctx context.Context, id string) (*Client, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.baseEndpoint, c.workspaceID, id)
+func (c *ClientNode) Get(ctx context.Context, workspaceID string, id string) (*Client, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.endpoint, workspaceID, id)
 	res, err := get(ctx, c.apiKey, nil, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
@@ -100,8 +100,9 @@ func (c *ClientNode) Get(ctx context.Context, id string) (*Client, error) {
 }
 
 // Add create new Client based on fields given.
-func (c *ClientNode) Add(ctx context.Context, fields ClientAddFields) (*Client, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/clients", c.baseEndpoint, c.workspaceID)
+func (c *ClientNode) Add(ctx context.Context, workspaceID string, fields ClientAddFields) (*Client,
+	error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/clients", c.endpoint, workspaceID)
 	res, err := post(ctx, c.apiKey, nil, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("post: %w", err)
@@ -117,9 +118,9 @@ func (c *ClientNode) Add(ctx context.Context, fields ClientAddFields) (*Client, 
 }
 
 // Update existing Client based on fields and options given.
-func (c *ClientNode) Update(ctx context.Context, id string, fields ClientUpdateFields,
-	options ClientUpdateOptions) (*Client, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.baseEndpoint, c.workspaceID, id)
+func (c *ClientNode) Update(ctx context.Context, workspaceID string, id string,
+	fields ClientUpdateFields, options ClientUpdateOptions) (*Client, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.endpoint, workspaceID, id)
 	res, err := put(ctx, c.apiKey, options, fields, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
@@ -135,8 +136,8 @@ func (c *ClientNode) Update(ctx context.Context, id string, fields ClientUpdateF
 }
 
 // Delete existing Client.
-func (c *ClientNode) Delete(ctx context.Context, id string) (*Client, error) {
-	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.baseEndpoint, c.workspaceID, id)
+func (c *ClientNode) Delete(ctx context.Context, workspaceID string, id string) (*Client, error) {
+	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.endpoint, workspaceID, id)
 	res, err := del(ctx, c.apiKey, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("del: %w", err)
