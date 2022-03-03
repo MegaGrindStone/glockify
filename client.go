@@ -1,9 +1,10 @@
 package glockify
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strconv"
 )
 
 // ClientNode manipulating Client resource.
@@ -12,7 +13,7 @@ type ClientNode struct {
 	apiKey   string
 }
 
-// Client wraps Clockify's client resource.
+// Client represent Clockify's client resource.
 // See: https://clockify.me/developers-api#tag-Client
 type Client struct {
 	ID          string `json:"id,omitempty"`
@@ -21,54 +22,50 @@ type Client struct {
 	Archived    bool   `json:"archived,omitempty"`
 }
 
-// ClientAllFilter is used for All request.
-type ClientAllFilter struct {
-	// Archived if true, you'll get only archived clients.
-	// If false, you'll get only active clients.
-	Archived bool `schema:"archived"`
+const (
+	archiveProjectsKey = "archive-projects"
+)
 
-	// Name if provided, clients will be filtered by name
-	Name string `schema:"name"`
-
-	// Page default 1
-	Page int `schema:"page"`
-
-	// PageSize max page-size 5000
-	// Default 50
-	PageSize int `schema:"page-size"`
-
-	// SortColumn possible values is "NAME"
-	SortColumn string `schema:"sort-column"`
-
-	// SortOrder possible values is "ASCENDING", "DESCENDING"
-	SortOrder string `schema:"sort-order"`
+// WithArchiveProjects set whether archiving client will result in archiving
+// all projects of given client. Default to false.
+func WithArchiveProjects(archiveProjects bool) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(archiveProjectsKey, strconv.FormatBool(archiveProjects))
+			return archiveProjectsKey
+		},
+	}
 }
 
-// ClientAddFields is used for Add request.
-// See: https://clockify.me/developers-api#tag-Client
-type ClientAddFields struct {
+type ClientSortColumn string
+
+const (
+	ClientSortColumnName ClientSortColumn = "NAME"
+)
+
+// WithClientSortColumn set fields you want to sort against.
+func WithClientSortColumn(sortColumn ClientSortColumn) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(sortColumnKey, string(sortColumn))
+			return sortColumnKey
+		},
+	}
+}
+
+type clientAddFields struct {
 	Name string `json:"name"`
 }
 
-// ClientUpdateFields is used for Update request.
-// See: https://clockify.me/developers-api#tag-Client
-type ClientUpdateFields struct {
-	Archived bool   `json:"archived"`
-	Name     string `json:"name"`
-}
-
-// ClientUpdateOptions is used for Update request.
-type ClientUpdateOptions struct {
-	// ArchiveProjects controls whether archiving client will result in archiving
-	// all projects of given client.
-	ArchiveProjects bool `scheme:"archive-projects"`
+type clientUpdateFields struct {
+	Archived *bool  `json:"archived,omitempty"`
+	Name     string `json:"name,omitempty"`
 }
 
 // All get all Client resource based on filter given.
-func (c *ClientNode) All(ctx context.Context, workspaceID string,
-	filter ClientAllFilter) ([]Client, error) {
+func (c *ClientNode) All(workspaceID string, opts ...RequestOption) ([]Client, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/clients", c.endpoint, workspaceID)
-	res, err := get(ctx, c.apiKey, filter, endpoint)
+	res, err := get(clientAllRequest(c.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
@@ -82,10 +79,30 @@ func (c *ClientNode) All(ctx context.Context, workspaceID string,
 	return result, nil
 }
 
+func clientAllRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	res.params.Add(archivedKey, strconv.FormatBool(false))
+	res.params.Add(pageKey, strconv.Itoa(defaultPage))
+	res.params.Add(pageSizeKey, strconv.Itoa(defaultPageSize))
+	res.params.Add(sortOrderKey, defaultSortOrder)
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			opt.paramsProvider(res.params)
+		}
+	}
+	injectContext(&res, options)
+
+	return res
+}
+
 // Get one Client by its id.
-func (c *ClientNode) Get(ctx context.Context, workspaceID string, id string) (*Client, error) {
+func (c *ClientNode) Get(workspaceID string, id string, opts ...RequestOption) (*Client, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.endpoint, workspaceID, id)
-	res, err := get(ctx, c.apiKey, nil, endpoint)
+	res, err := get(clientGetRequest(c.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
@@ -99,11 +116,21 @@ func (c *ClientNode) Get(ctx context.Context, workspaceID string, id string) (*C
 	return result, nil
 }
 
+func clientGetRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	injectContext(&res, options)
+
+	return res
+}
+
 // Add create new Client based on fields given.
-func (c *ClientNode) Add(ctx context.Context, workspaceID string, fields ClientAddFields) (*Client,
-	error) {
+func (c *ClientNode) Add(workspaceID string, name string, opts ...RequestOption) (*Client, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/clients", c.endpoint, workspaceID)
-	res, err := post(ctx, c.apiKey, nil, fields, endpoint)
+	res, err := post(clientAddRequest(c.apiKey, endpoint, name, opts))
 	if err != nil {
 		return nil, fmt.Errorf("post: %w", err)
 	}
@@ -117,11 +144,23 @@ func (c *ClientNode) Add(ctx context.Context, workspaceID string, fields ClientA
 	return result, nil
 }
 
+func clientAddRequest(apiKey string, endpoint string, name string,
+	options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.fields = clientAddFields{Name: name}
+	injectContext(&res, options)
+
+	return res
+}
+
 // Update existing Client based on fields and options given.
-func (c *ClientNode) Update(ctx context.Context, workspaceID string, id string,
-	fields ClientUpdateFields, options ClientUpdateOptions) (*Client, error) {
+func (c *ClientNode) Update(workspaceID string, id string, opts ...RequestOption) (*Client,
+	error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.endpoint, workspaceID, id)
-	res, err := put(ctx, c.apiKey, options, fields, endpoint)
+	res, err := put(clientUpdateRequest(c.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
 	}
@@ -135,10 +174,48 @@ func (c *ClientNode) Update(ctx context.Context, workspaceID string, id string,
 	return result, nil
 }
 
+func clientUpdateRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	res.params.Add(archiveProjectsKey, strconv.FormatBool(false))
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			opt.paramsProvider(res.params)
+		}
+	}
+
+	fields := clientUpdateFields{}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			params := url.Values{}
+			key := opt.paramsProvider(params)
+			switch key {
+			case archivedKey:
+				val, _ := strconv.ParseBool(params.Get(key))
+				fields.Archived = &val
+			case nameKey:
+				fields.Name = params.Get(key)
+			}
+
+		}
+	}
+	res.params.Del(archivedKey)
+	res.params.Del(nameKey)
+	res.fields = fields
+
+	injectContext(&res, options)
+
+	return res
+}
+
 // Delete existing Client.
-func (c *ClientNode) Delete(ctx context.Context, workspaceID string, id string) (*Client, error) {
+func (c *ClientNode) Delete(workspaceID string, id string, opts ...RequestOption) (*Client,
+	error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/clients/%s", c.endpoint, workspaceID, id)
-	res, err := del(ctx, c.apiKey, endpoint)
+	res, err := del(clientDeleteRequest(c.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("del: %w", err)
 	}
@@ -150,4 +227,14 @@ func (c *ClientNode) Delete(ctx context.Context, workspaceID string, id string) 
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil
+}
+
+func clientDeleteRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	injectContext(&res, options)
+
+	return res
 }

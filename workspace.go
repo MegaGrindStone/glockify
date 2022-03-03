@@ -1,7 +1,6 @@
 package glockify
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -13,7 +12,7 @@ type WorkspaceNode struct {
 	apiKey   string
 }
 
-// Workspace wraps Clockify's workspace resource.
+// Workspace represent Clockify's workspace resource.
 // See: https://clockify.me/developers-api#tag-Workspace
 type Workspace struct {
 	ID                string            `json:"id,omitempty"`
@@ -85,9 +84,9 @@ type WorkspaceSettings struct {
 }
 
 // All get all Workspace resource.
-func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
+func (w *WorkspaceNode) All(opts ...RequestOption) ([]Workspace, error) {
 	endpoint := fmt.Sprintf("%s/workspaces", w.endpoint)
-	res, err := get(ctx, w.apiKey, nil, endpoint)
+	res, err := get(workspaceAllRequest(w.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
@@ -99,4 +98,14 @@ func (w *WorkspaceNode) All(ctx context.Context) ([]Workspace, error) {
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil
+}
+
+func workspaceAllRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	injectContext(&res, options)
+
+	return res
 }
