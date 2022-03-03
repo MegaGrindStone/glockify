@@ -69,6 +69,10 @@ func (g *Glockify) setupNode(endpoint Endpoint) {
 		endpoint: endpoint.Base,
 		apiKey:   g.apiKey,
 	}
+	g.Task = TaskNode{
+		endpoint: endpoint.Base,
+		apiKey:   g.apiKey,
+	}
 }
 
 // WithEndpoint set endpoint when creating new Glockify.
