@@ -38,8 +38,6 @@ type Project struct {
 	Public         bool           `json:"public,omitempty"`
 	Template       bool           `json:"template,omitempty"`
 	Favorite       bool           `json:"favorite,omitempty"`
-
-	Task TaskNode `json:"-"`
 }
 
 // Estimate wraps Clockify's estimate resource.
