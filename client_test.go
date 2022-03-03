@@ -1,43 +1,29 @@
 package glockify
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	"net/url"
 	"testing"
 )
 
 type ClientTestSuite struct {
 	suite.Suite
-	server clientMockServer
+	server    clientMockServer
+	testIndex int
 }
 
 type clientMockServer struct {
 	baseServer *httptest.Server
-	clients    []Client
-}
-
-func (c *clientMockServer) addClients(workspaceID string, count int) {
-	for i := 0; i < count; i++ {
-		c.clients = append(c.clients, Client{
-			ID:          fmt.Sprintf("%d", i+1),
-			Name:        fmt.Sprintf("Client %d", i+1),
-			WorkspaceID: workspaceID,
-		})
-	}
 }
 
 func (s *ClientTestSuite) SetupTest() {
 	testMux := mux.NewRouter()
 
-	testMux.HandleFunc("/workspaces", workspaces)
 	testMux.HandleFunc("/workspaces/{workspaceID}/clients", s.all()).Methods("GET")
 	testMux.HandleFunc("/workspaces/{workspaceID}/clients/{clientID}", s.get()).Methods("GET")
 	testMux.HandleFunc("/workspaces/{workspaceID}/clients", s.add()).Methods("POST")
@@ -47,12 +33,43 @@ func (s *ClientTestSuite) SetupTest() {
 
 	s.server = clientMockServer{
 		baseServer: httptest.NewServer(testMux),
-		clients:    make([]Client, 0),
 	}
 }
 
 func (s *ClientTestSuite) TearDownTest() {
 	s.server.baseServer.Close()
+}
+
+var testsClientAll = []struct {
+	name        string
+	workspaceID string
+	options     []RequestOption
+	wantParams  url.Values
+}{
+	{
+		name:        "Default Params",
+		workspaceID: "Workspace1",
+		wantParams: map[string][]string{
+			"archived":   {"false"},
+			"page":       {"1"},
+			"page-size":  {"50"},
+			"sort-order": {"DESCENDING"},
+		},
+	},
+	{
+		name:        "Set Sort Column",
+		workspaceID: "Workspace1",
+		options: []RequestOption{
+			WithClientSortColumn(ClientSortColumnName),
+		},
+		wantParams: map[string][]string{
+			"archived":    {"false"},
+			"page":        {"1"},
+			"page-size":   {"50"},
+			"sort-column": {"NAME"},
+			"sort-order":  {"DESCENDING"},
+		},
+	},
 }
 
 func (s *ClientTestSuite) all() func(http.ResponseWriter, *http.Request) {
@@ -61,27 +78,42 @@ func (s *ClientTestSuite) all() func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		s.Require().Equal("GET", r.Method)
+
+		test := testsClientAll[s.testIndex]
+		path := mux.Vars(r)
+		workspaceID, ok := path["workspaceID"]
+		s.Require().True(ok)
+		s.Require().Equal(test.workspaceID, workspaceID)
+		s.Require().Equal(r.URL.Query(), test.wantParams)
 
 		w.WriteHeader(http.StatusOK)
-		elems := make([]string, 0)
-		for _, c := range s.server.clients {
-			elems = append(elems, fmt.Sprintf(`
-	{
-		"id": "%s",
-		"name": "%s",
-		"workspaceId": "%s",
-		"archived": %t
-  	}`, c.ID, c.Name, c.WorkspaceID, c.Archived))
-		}
-		_, err := fmt.Fprintf(w, "[%s]", strings.Join(elems, ","))
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
+		_, err := fmt.Fprintf(w, `[{"id":"dummy"}]`)
+		s.Require().Nil(err)
 	}
+}
+
+var testsClientGet = []struct {
+	name           string
+	workspaceID    string
+	clientID       string
+	wantStatusCode int
+	wantErr        bool
+}{
+	{
+		name:           "Success",
+		workspaceID:    "Workspace1",
+		clientID:       "1",
+		wantStatusCode: http.StatusOK,
+		wantErr:        false,
+	},
+	{
+		name:           "Not Found",
+		workspaceID:    "Workspace1",
+		clientID:       "2",
+		wantStatusCode: http.StatusNotFound,
+		wantErr:        true,
+	},
 }
 
 func (s *ClientTestSuite) get() func(http.ResponseWriter, *http.Request) {
@@ -90,36 +122,44 @@ func (s *ClientTestSuite) get() func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		if r.Method != "GET" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		vars := mux.Vars(r)
-		clientID, ok := vars["clientID"]
-		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		s.Require().Equal("GET", r.Method)
 
-		for _, c := range s.server.clients {
-			if c.ID == clientID {
-				w.WriteHeader(http.StatusOK)
-				_, err := fmt.Fprintf(w, `
-					{
-						"id": "%s",
-						"name": "%s",
-						"workspaceId": "%s",
-						"archived": %t
-					}`, c.ID, c.Name, c.WorkspaceID, c.Archived)
-				if err != nil {
-					log.Fatalf("%v", err)
-				}
-				return
-			}
-		}
+		test := testsClientGet[s.testIndex]
+		path := mux.Vars(r)
+		workspaceID, ok := path["workspaceID"]
+		s.Require().True(ok)
+		s.Require().Equal(test.workspaceID, workspaceID)
+		clientID, ok := path["clientID"]
+		s.Require().True(ok)
+		s.Require().Equal(test.clientID, clientID)
 
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(test.wantStatusCode)
+		_, err := fmt.Fprintf(w, `{"id":"dummy"}`)
+		s.Require().Nil(err)
 	}
+}
+
+var testsClientAdd = []struct {
+	name           string
+	workspaceID    string
+	clientName     string
+	wantStatusCode int
+	wantErr        bool
+}{
+	{
+		name:           "Success",
+		workspaceID:    "Workspace1",
+		clientName:     "Client 1",
+		wantStatusCode: http.StatusOK,
+		wantErr:        false,
+	},
+	{
+		name:           "Already exist",
+		workspaceID:    "Workspace1",
+		clientName:     "Client 2",
+		wantStatusCode: http.StatusBadRequest,
+		wantErr:        true,
+	},
 }
 
 func (s *ClientTestSuite) add() func(http.ResponseWriter, *http.Request) {
@@ -128,34 +168,60 @@ func (s *ClientTestSuite) add() func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		fields := new(ClientAddFields)
+		s.Require().Equal("POST", r.Method)
+		fields := new(clientAddFields)
 		decoder := json.NewDecoder(r.Body)
-		if err := decoder.Decode(fields); err != nil {
-			log.Fatalf("%v", err)
-		}
+		err := decoder.Decode(fields)
+		s.Require().Nil(err)
 
-		newClient := Client{
-			ID:   fmt.Sprintf("%d", len(s.server.clients)),
-			Name: fields.Name,
-		}
-		s.server.clients = append(s.server.clients, newClient)
+		test := testsClientAdd[s.testIndex]
+		s.Require().Equal(test.clientName, fields.Name)
 
-		w.WriteHeader(http.StatusOK)
-		_, err := fmt.Fprintf(w, `
-			{
-				"id": "%s",
-				"name": "%s",
-				"workspaceId": "%s",
-				"archived": %t
-			}`, newClient.ID, newClient.Name, newClient.WorkspaceID, newClient.Archived)
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
+		w.WriteHeader(test.wantStatusCode)
+		_, err = fmt.Fprintf(w, `{"id":"dummy"}`)
+		s.Require().Nil(err)
 	}
+}
+
+var fl = false
+
+var testsClientUpdate = []struct {
+	name        string
+	workspaceID string
+	clientID    string
+	options     []RequestOption
+	wantParams  url.Values
+	wantFields  clientUpdateFields
+}{
+	{
+		name:        "Default",
+		workspaceID: "Workspace1",
+		clientID:    "1",
+		wantParams: map[string][]string{
+			"archive-projects": {"false"},
+		},
+		wantFields: clientUpdateFields{
+			Archived: nil,
+			Name:     "",
+		},
+	},
+	{
+		name:        "Set options",
+		workspaceID: "Workspace1",
+		clientID:    "2",
+		options: []RequestOption{
+			WithArchiveProjects(true),
+			WithArchived(false),
+			WithName("Dummy Name"),
+		},
+		wantParams: map[string][]string{
+			"archive-projects": {"true"},
+		},
+		wantFields: clientUpdateFields{
+			Archived: &fl,
+			Name:     "Dummy Name",
+		},
+	},
 }
 
 func (s *ClientTestSuite) update() func(http.ResponseWriter, *http.Request) {
@@ -164,42 +230,53 @@ func (s *ClientTestSuite) update() func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		if r.Method != "PUT" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		vars := mux.Vars(r)
-		clientID, ok := vars["clientID"]
-		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		fields := new(ClientUpdateFields)
+		s.Require().Equal("PUT", r.Method)
+
+		test := testsClientUpdate[s.testIndex]
+
+		path := mux.Vars(r)
+		workspaceID, ok := path["workspaceID"]
+		s.Require().True(ok)
+		s.Require().Equal(test.workspaceID, workspaceID)
+		clientID, ok := path["clientID"]
+		s.Require().True(ok)
+		s.Require().Equal(test.clientID, clientID)
+
+		s.Require().Equal(test.wantParams, r.URL.Query())
+
+		fields := new(clientUpdateFields)
 		decoder := json.NewDecoder(r.Body)
-		if err := decoder.Decode(fields); err != nil {
-			log.Fatalf("%v", err)
-		}
+		err := decoder.Decode(fields)
+		s.Require().Nil(err)
+		s.Require().Equal(test.wantFields, *fields)
 
-		for i, c := range s.server.clients {
-			if c.ID == clientID {
-				s.server.clients[i].Name = fields.Name
-				w.WriteHeader(http.StatusOK)
-				_, err := fmt.Fprintf(w, `
-					{
-						"id": "%s",
-						"name": "%s",
-						"workspaceId": "%s",
-						"archived": %t
-					}`, c.ID, fields.Name, c.WorkspaceID, c.Archived)
-				if err != nil {
-					log.Fatalf("%v", err)
-				}
-				return
-			}
-		}
-
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusOK)
+		_, err = fmt.Fprintf(w, `{"id":"dummy"}`)
+		s.Require().Nil(err)
 	}
+}
+
+var testsClientDelete = []struct {
+	name           string
+	workspaceID    string
+	clientID       string
+	wantStatusCode int
+	wantErr        bool
+}{
+	{
+		name:           "Success",
+		workspaceID:    "Workspace1",
+		clientID:       "1",
+		wantStatusCode: http.StatusOK,
+		wantErr:        false,
+	},
+	{
+		name:           "Not Found",
+		workspaceID:    "Workspace1",
+		clientID:       "2",
+		wantStatusCode: http.StatusNotFound,
+		wantErr:        true,
+	},
 }
 
 func (s *ClientTestSuite) delete() func(http.ResponseWriter, *http.Request) {
@@ -208,145 +285,104 @@ func (s *ClientTestSuite) delete() func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		if r.Method != "DELETE" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		vars := mux.Vars(r)
-		clientID, ok := vars["clientID"]
-		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		s.Require().Equal("DELETE", r.Method)
 
-		foundIndex := -1
-		deletedClient := Client{}
-		for i, c := range s.server.clients {
-			if c.ID == clientID {
-				foundIndex = i
-				deletedClient = c
-				break
-			}
-		}
-		if foundIndex != -1 {
-			s.server.clients = append(s.server.clients[:foundIndex],
-				s.server.clients[foundIndex+1:]...)
-			w.WriteHeader(http.StatusOK)
-			_, err := fmt.Fprintf(w, `
-			{
-				"id": "%s",
-				"name": "%s",
-				"workspaceId": "%s",
-				"archived": %t
-			}`, deletedClient.ID, deletedClient.Name, deletedClient.WorkspaceID,
-				deletedClient.Archived)
-			if err != nil {
-				log.Fatalf("%v", err)
-			}
-			return
-		}
+		test := testsClientDelete[s.testIndex]
 
-		w.WriteHeader(http.StatusNotFound)
+		path := mux.Vars(r)
+		workspaceID, ok := path["workspaceID"]
+		s.Require().True(ok)
+		s.Require().Equal(test.workspaceID, workspaceID)
+		clientID, ok := path["clientID"]
+		s.Require().True(ok)
+		s.Require().Equal(test.clientID, clientID)
+
+		w.WriteHeader(test.wantStatusCode)
+		_, err := fmt.Fprintf(w, `{"id":"dummy"}`)
+		s.Require().Nil(err)
 	}
 }
 
 func (s *ClientTestSuite) TestAll() {
-	ctx := context.Background()
-
 	glock := New(dummyAPIKey, WithEndpoint(Endpoint{
 		Base: s.server.baseServer.URL,
 	}))
-	ws, err := glock.Workspace.All(ctx)
-	require.Nil(s.T(), err)
-	require.Len(s.T(), ws, 1)
 
-	s.server.addClients(ws[0].ID, 5)
-
-	cs, err := glock.Client.All(ctx, ws[0].ID, ClientAllFilter{})
-	require.Nil(s.T(), err)
-	require.Len(s.T(), cs, 5)
+	for index, tc := range testsClientAll {
+		s.Run(tc.name, func() {
+			s.testIndex = index
+			_, err := glock.Client.All(tc.workspaceID, tc.options...)
+			s.Require().Nil(err)
+		})
+	}
 }
 
 func (s *ClientTestSuite) TestGet() {
-	ctx := context.Background()
-
 	glock := New(dummyAPIKey, WithEndpoint(Endpoint{
 		Base: s.server.baseServer.URL,
 	}))
-	ws, err := glock.Workspace.All(ctx)
-	require.Nil(s.T(), err)
-	require.Len(s.T(), ws, 1)
 
-	s.server.addClients(ws[0].ID, 1)
-
-	c, err := glock.Client.Get(ctx, ws[0].ID, "1")
-	require.Nil(s.T(), err)
-	require.Equal(s.T(), "Client 1", c.Name)
+	for index, tc := range testsClientGet {
+		s.Run(tc.name, func() {
+			s.testIndex = index
+			_, err := glock.Client.Get(tc.workspaceID, tc.clientID)
+			if tc.wantErr {
+				s.Require().NotNil(err)
+			} else {
+				s.Require().Nil(err)
+			}
+		})
+	}
 }
 
 func (s *ClientTestSuite) TestAdd() {
-	ctx := context.Background()
-
 	glock := New(dummyAPIKey, WithEndpoint(Endpoint{
 		Base: s.server.baseServer.URL,
 	}))
-	ws, err := glock.Workspace.All(ctx)
-	require.Nil(s.T(), err)
-	require.Len(s.T(), ws, 1)
 
-	wantName := "Dummy Name"
-
-	c, err := glock.Client.Add(ctx, ws[0].ID, ClientAddFields{Name: wantName})
-	require.Nil(s.T(), err)
-	require.Equal(s.T(), wantName, c.Name)
-
-	newC, err := glock.Client.Get(ctx, ws[0].ID, c.ID)
-	require.Nil(s.T(), err)
-	require.Equal(s.T(), wantName, newC.Name)
+	for index, tc := range testsClientAdd {
+		s.Run(tc.name, func() {
+			s.testIndex = index
+			_, err := glock.Client.Add(tc.workspaceID, tc.clientName)
+			if tc.wantErr {
+				s.Require().NotNil(err)
+			} else {
+				s.Require().Nil(err)
+			}
+		})
+	}
 }
 
 func (s *ClientTestSuite) TestUpdate() {
-	ctx := context.Background()
-
 	glock := New(dummyAPIKey, WithEndpoint(Endpoint{
 		Base: s.server.baseServer.URL,
 	}))
-	ws, err := glock.Workspace.All(ctx)
-	require.Nil(s.T(), err)
-	require.Len(s.T(), ws, 1)
 
-	s.server.addClients(ws[0].ID, 1)
-
-	c, err := glock.Client.Get(ctx, ws[0].ID, "1")
-	require.Nil(s.T(), err)
-	require.Equal(s.T(), "Client 1", c.Name)
-
-	uc, err := glock.Client.Update(ctx, ws[0].ID, c.ID, ClientUpdateFields{
-		Name: "Client 2",
-	}, ClientUpdateOptions{})
-	require.Nil(s.T(), err)
-	require.Equal(s.T(), "Client 2", uc.Name)
+	for index, tc := range testsClientUpdate {
+		s.Run(tc.name, func() {
+			s.testIndex = index
+			_, err := glock.Client.Update(tc.workspaceID, tc.clientID, tc.options...)
+			s.Require().Nil(err)
+		})
+	}
 }
 
 func (s *ClientTestSuite) TestDelete() {
-	ctx := context.Background()
-
 	glock := New(dummyAPIKey, WithEndpoint(Endpoint{
 		Base: s.server.baseServer.URL,
 	}))
-	ws, err := glock.Workspace.All(ctx)
-	require.Nil(s.T(), err)
-	require.Len(s.T(), ws, 1)
 
-	s.server.addClients(ws[0].ID, 5)
-
-	c, err := glock.Client.Delete(ctx, ws[0].ID, "1")
-	require.Nil(s.T(), err)
-	require.Equal(s.T(), "Client 1", c.Name)
-
-	cs, err := glock.Client.All(ctx, ws[0].ID, ClientAllFilter{})
-	require.Nil(s.T(), err)
-	require.Len(s.T(), cs, 4)
+	for index, tc := range testsClientDelete {
+		s.Run(tc.name, func() {
+			s.testIndex = index
+			_, err := glock.Client.Delete(tc.workspaceID, tc.clientID)
+			if tc.wantErr {
+				s.Require().NotNil(err)
+			} else {
+				s.Require().Nil(err)
+			}
+		})
+	}
 }
 
 func TestClientNode(t *testing.T) {

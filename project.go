@@ -1,9 +1,11 @@
 package glockify
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/url"
+	"strconv"
 )
 
 // ProjectNode manipulating Project resource.
@@ -12,7 +14,7 @@ type ProjectNode struct {
 	apiKey   string
 }
 
-// Project wraps Clockify's project resource.
+// Project represent Clockify's project resource.
 // See: https://clockify.me/developers-api#tag-Project
 type Project struct {
 	ID             string         `json:"id,omitempty"`
@@ -93,132 +95,306 @@ type BudgetEstimate struct {
 	Active      bool   `json:"active,omitempty"`
 }
 
-// ProjectAllFilter is used for All request.
-type ProjectAllFilter struct {
-	// Hydrated If true, you'll get custom fields, tasks, and memberships of all projects.
-	Hydrated bool `schema:"hydrated"`
+const (
+	hydratedKey       = "hydrated"
+	clientsKey        = "clients"
+	containsClientKey = "contains-client"
+	clientStatusKey   = "client-status"
+	usersKey          = "users"
+	containsUserKey   = "contains-users"
+	userStatusKey     = "user-status"
+	isTemplateKey     = "is-template"
+	estimateTypeKey   = "estimate-type"
+	clientIDKey       = "clientId"
+	isPublicKey       = "isPublic"
+	colorKey          = "color"
+	noteKey           = "note"
+	hourlyRateKey     = "hourlyRate"
+	timeEstimateKey   = "timeEstimate"
+	budgetEstimateKey = "budgetEstimate"
+	membershipsKey    = "memberships"
+)
 
-	// Archived if true, you'll get only archived clients.
-	// If false, you'll get only active clients.
-	Archived bool `schema:"archived"`
+type ClientStatus string
 
-	// Name if provided, clients will be filtered by name
-	Name string `schema:"name"`
+// Possible values of ClientStatus
+const (
+	ClientStatusActive   ClientStatus = "ACTIVE"
+	ClientStatusArchived              = "ARCHIVED"
+)
 
-	// Page default 1
-	Page int `schema:"page"`
+type UserStatus string
 
-	// PageSize max page-size 5000
-	// Default 50
-	PageSize int `schema:"page-size"`
+// Possible values of UserStatus
+const (
+	UserStatusActive   UserStatus = "ACTIVE"
+	UserStatusInactive            = "INACTIVE"
+)
 
-	// Billable If provided, projects will be filtered by billable status.
-	Billable bool `schema:"billable"`
+type EstimateType string
 
-	// Clients If provided, projects will be filtered by client ID(s).
-	Clients []string `schema:"clients"`
+// Possible values of EstimateType
+const (
+	EstimateTypeManual EstimateType = "MANUAL"
+	EstimateTypeAuto                = "AUTO"
+)
 
-	// ContainsClient Default is true. If set to false, you'll get projects that
-	// exclude the client ID(s) you've provided.
-	ContainsClient bool `schema:"contains-client"`
-
-	// ClientStatus possible value is "ACTIVE", "ARCHIVED"
-	ClientStatus string `schema:"client-status"`
-
-	// Users If provided, projects will be filtered by user ID(s) who have access.
-	Users []string `schema:"users"`
-
-	// ContainUsers Default is true. If set to false, you'll get projects that
-	// the user ID(s) you've provided don't have access to.
-	ContainUsers bool `schema:"contain-users"`
-
-	// UserStatus possible value is "ACTIVE", "INACTIVE"
-	UserStatus string `schema:"user-status"`
-
-	// IsTemplate If provided, projects will be filtered by whether they are used as a template.
-	IsTemplate bool `schema:"is-template"`
-
-	// SortColumn possible values is "NAME"
-	SortColumn string `schema:"sort-column"`
-
-	// SortOrder possible values is "ASCENDING", "DESCENDING"
-	SortOrder string `schema:"sort-order"`
+// WithHydrated if set to true, projects returned will contain custom fields,
+// task and memberships. Default to false.
+func WithHydrated(hydrated bool) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(hydratedKey, strconv.FormatBool(hydrated))
+			return hydratedKey
+		},
+	}
 }
 
-// ProjectAddFields is used for Add request.
-// See: https://clockify.me/developers-api#tag-Project
-type ProjectAddFields struct {
+// WithClients if set, projects will be filtered by client IDs.
+// Filter behaviour depends on the WithContainsClient.
+func WithClients(ids []string) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			for _, id := range ids {
+				v.Add(clientsKey, id)
+			}
+			return clientsKey
+		},
+	}
+}
+
+// WithContainsClient if set to true, WithClients filter will be inclusion,
+// otherwise it will be exclusion. Default to true.
+func WithContainsClient(containsClient bool) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(containsClientKey, strconv.FormatBool(containsClient))
+			return containsClientKey
+		},
+	}
+}
+
+// WithClientStatus filter projects returned with client state.
+func WithClientStatus(status ClientStatus) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(clientStatusKey, string(status))
+			return clientStatusKey
+		},
+	}
+}
+
+// WithUsers if set, projects will be filtered by user IDs who have access.
+// Filter behaviour depends on the WithContainsUser.
+func WithUsers(ids []string) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			for _, id := range ids {
+				v.Add(usersKey, id)
+			}
+			return usersKey
+		},
+	}
+}
+
+// WithContainsUser if set to true, WithUsers filter will be inclusion,
+// otherwise it will be exclusion. Default to true.
+func WithContainsUser(containsClient bool) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(containsUserKey, strconv.FormatBool(containsClient))
+			return containsUserKey
+		},
+	}
+}
+
+// WithUserStatus filter projects returned with user state.
+func WithUserStatus(status UserStatus) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(userStatusKey, string(status))
+			return userStatusKey
+		},
+	}
+}
+
+// WithIsTemplate when applied to ProjectNode.All, it's filter projects returned
+// whether it's used for template. When applied to ProjectNode.UpdateTemplate
+// it's set whether project used for template.
+func WithIsTemplate(isTemplate bool) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(isTemplateKey, strconv.FormatBool(isTemplate))
+			return isTemplateKey
+		},
+	}
+}
+
+// WithEstimateType
+// EstimateTypeManual: type enables one fixed estimate for the whole project.
+// EstimateTypeAuto: type enables task-based project estimate, and
+// estimate duration doesn't matter.
+func WithEstimateType(estimateType EstimateType) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(estimateTypeKey, string(estimateType))
+			return estimateTypeKey
+		},
+	}
+}
+
+// WithClientID set project's client id.
+func WithClientID(id string) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(clientIDKey, id)
+			return clientIDKey
+		},
+	}
+}
+
+// WithIsPublic set project's permission state.
+func WithIsPublic(isPublic bool) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(isPublicKey, strconv.FormatBool(isPublic))
+			return isPublicKey
+		},
+	}
+}
+
+// WithColor set project's color. It's in hex format, ex: #ffffff for white.
+func WithColor(color string) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(colorKey, color)
+			return colorKey
+		},
+	}
+}
+
+// WithNote set project's note.
+func WithNote(note string) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(noteKey, note)
+			return noteKey
+		},
+	}
+}
+
+// WithHourlyRate set project's hourly rates.
+func WithHourlyRate(rate HourlyRate) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			hr, err := json.Marshal(rate)
+			if err != nil {
+				log.Fatalf("%v", err)
+			}
+			v.Set(hourlyRateKey, string(hr))
+			return hourlyRateKey
+		},
+	}
+}
+
+// WithTimeEstimate set project's time estimate.
+func WithTimeEstimate(estimate TimeEstimate) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			te, err := json.Marshal(estimate)
+			if err != nil {
+				log.Fatalf("%v", err)
+			}
+			v.Set(timeEstimateKey, string(te))
+			return timeEstimateKey
+		},
+	}
+}
+
+// WithBudgetEstimate set project's budget estimate.
+func WithBudgetEstimate(estimate BudgetEstimate) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			be, err := json.Marshal(estimate)
+			if err != nil {
+				log.Fatalf("%v", err)
+			}
+			v.Set(budgetEstimateKey, string(be))
+			return budgetEstimateKey
+		},
+	}
+}
+
+// WithMemberships set project's membership state.
+func WithMemberships(memberships Memberships) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			m, err := json.Marshal(memberships)
+			if err != nil {
+				log.Fatalf("%v", err)
+			}
+			v.Set(membershipsKey, string(m))
+			return membershipsKey
+		},
+	}
+}
+
+type ProjectSortColumn string
+
+const (
+	ProjectSortColumnName       ProjectSortColumn = "NAME"
+	ProjectSortColumnClientName                   = "CLIENT_NAME"
+	ProjectSortColumnDuration                     = "DURATION"
+)
+
+// WithProjectSortColumn set fields you want to sort against.
+func WithProjectSortColumn(sortColumn ProjectSortColumn) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(sortColumnKey, string(sortColumn))
+			return sortColumnKey
+		},
+	}
+}
+
+type projectAddFields struct {
 	Name     string `json:"name"`
 	ClientID string `json:"clientId,omitempty"`
-	IsPublic string `json:"isPublic,omitempty"`
+	IsPublic *bool  `json:"isPublic,omitempty"`
 	Color    string `json:"color,omitempty"`
 	Note     string `json:"note,omitempty"`
-	Billable bool   `json:"billable,omitempty"`
-	Public   bool   `json:"public,omitempty"`
+	Billable *bool  `json:"billable,omitempty"`
+	Public   *bool  `json:"public,omitempty"`
 }
 
-// ProjectUpdateFields is used for Update request.
-// See: https://clockify.me/developers-api#tag-Project
-type ProjectUpdateFields struct {
-	Name       string     `json:"name,omitempty"`
-	ClientID   string     `json:"clientId,omitempty"`
-	IsPublic   bool       `json:"isPublic,omitempty"`
-	HourlyRate HourlyRate `json:"hourlyRate"`
-	Color      string     `json:"color,omitempty"`
-	Note       string     `json:"note,omitempty"`
-	Billable   bool       `json:"billable,omitempty"`
-	Archived   bool       `json:"archived,omitempty"`
+type projectUpdateFields struct {
+	Name       string      `json:"name,omitempty"`
+	ClientID   string      `json:"clientId,omitempty"`
+	IsPublic   *bool       `json:"isPublic,omitempty"`
+	HourlyRate *HourlyRate `json:"hourlyRate,omitempty"`
+	Color      string      `json:"color,omitempty"`
+	Note       string      `json:"note,omitempty"`
+	Billable   *bool       `json:"billable,omitempty"`
+	Archived   *bool       `json:"archived,omitempty"`
 }
 
-// ProjectUpdateEstimateFields is used for UpdateEstimate request.
-// See: https://clockify.me/developers-api#tag-Project
-type ProjectUpdateEstimateFields struct {
-	TimeEstimate   TimeEstimate   `json:"timeEstimate"`
-	BudgetEstimate BudgetEstimate `json:"budgetEstimate"`
+type projectUpdateEstimateFields struct {
+	TimeEstimate   *TimeEstimate   `json:"timeEstimate,omitempty"`
+	BudgetEstimate *BudgetEstimate `json:"budgetEstimate,omitempty"`
 }
 
-// ProjectUpdateMembershipsFields is used for UpdateMemberships request.
-// See: https://clockify.me/developers-api#tag-Project
-type ProjectUpdateMembershipsFields struct {
-	Memberships Memberships `json:"memberships"`
+type projectUpdateMembershipsFields struct {
+	Memberships *Memberships `json:"memberships,omitempty"`
 }
 
-// ProjectUpdateTemplateFields is used for UpdateTemplate request.
-// See: https://clockify.me/developers-api#tag-Project
-type ProjectUpdateTemplateFields struct {
-	IsTemplate bool `json:"isTemplate"`
-}
-
-// ProjectUpdateOptions is used for UpdateEstimate request.
-type ProjectUpdateOptions struct {
-	// EstimateType possible values is:
-	// "MANUAL": type enables one fixed estimate for the whole project.
-	// "AUTO": type enables task-based project estimate.
-	// If AUTO is enabled, estimate duration doesn't matter.
-	EstimateType string `scheme:"estimate-type"`
-}
-
-// ProjectUpdateEstimateOptions is used for Update request.
-type ProjectUpdateEstimateOptions struct {
-	// Active possible values is: "time" and "budget".
-	// If you need "No estimate", then don't set this field,
-	// or set both ProjectUpdateFields active fields as false.
-	Active string `scheme:"active"`
-
-	// Reset possible value is "MONTHLY".
-	Reset string `schema:"reset"`
-
-	// Type possible value is:
-	// "MANUAL": estimating whole project.
-	// "AUTO": enable task-based estimate
-	Type string `scheme:"type"`
+type projectUpdateTemplateFields struct {
+	IsTemplate *bool `json:"isTemplate,omitempty"`
 }
 
 // All get all Project resource based on filter given.
-func (p *ProjectNode) All(ctx context.Context, workspaceID string,
-	filter ProjectAllFilter) ([]Project, error) {
+func (p *ProjectNode) All(workspaceID string, opts ...RequestOption) ([]Project, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects", p.endpoint, workspaceID)
-	res, err := get(ctx, p.apiKey, filter, endpoint)
+	res, err := get(projectAllRequest(p.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
@@ -232,10 +408,32 @@ func (p *ProjectNode) All(ctx context.Context, workspaceID string,
 	return result, nil
 }
 
+func projectAllRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	res.params.Add(archivedKey, strconv.FormatBool(false))
+	res.params.Add(containsClientKey, strconv.FormatBool(true))
+	res.params.Add(containsUserKey, strconv.FormatBool(true))
+	res.params.Add(pageKey, strconv.Itoa(defaultPage))
+	res.params.Add(pageSizeKey, strconv.Itoa(defaultPageSize))
+	res.params.Add(sortOrderKey, defaultSortOrder)
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			opt.paramsProvider(res.params)
+		}
+	}
+	injectContext(&res, options)
+
+	return res
+}
+
 // Get one Project by its id.
-func (p *ProjectNode) Get(ctx context.Context, workspaceID string, id string) (*Project, error) {
+func (p *ProjectNode) Get(workspaceID string, id string, opts ...RequestOption) (*Project, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.endpoint, workspaceID, id)
-	res, err := get(ctx, p.apiKey, nil, endpoint)
+	res, err := get(projectGetRequest(p.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
@@ -249,11 +447,27 @@ func (p *ProjectNode) Get(ctx context.Context, workspaceID string, id string) (*
 	return result, nil
 }
 
+func projectGetRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			opt.paramsProvider(res.params)
+		}
+	}
+	injectContext(&res, options)
+
+	return res
+}
+
 // Add create new Project based on fields given.
-func (p *ProjectNode) Add(ctx context.Context, workspaceID string,
-	fields ProjectAddFields) (*Project, error) {
+func (p *ProjectNode) Add(workspaceID string, name string, opts ...RequestOption) (*Project,
+	error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects", p.endpoint, workspaceID)
-	res, err := post(ctx, p.apiKey, nil, fields, endpoint)
+	res, err := post(projectAddRequest(p.apiKey, endpoint, name, opts))
 	if err != nil {
 		return nil, fmt.Errorf("post: %w", err)
 	}
@@ -267,11 +481,46 @@ func (p *ProjectNode) Add(ctx context.Context, workspaceID string,
 	return result, nil
 }
 
+func projectAddRequest(apiKey string, endpoint string, name string,
+	options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	tr := true
+	fields := projectAddFields{Name: name, Billable: &tr}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			params := url.Values{}
+			key := opt.paramsProvider(params)
+			switch key {
+			case clientIDKey:
+				fields.ClientID = params.Get(key)
+			case isPublicKey:
+				val, _ := strconv.ParseBool(params.Get(isPublicKey))
+				fields.IsPublic = &val
+			case colorKey:
+				fields.Color = params.Get(colorKey)
+			case noteKey:
+				fields.Note = params.Get(noteKey)
+			case billableKey:
+				val, _ := strconv.ParseBool(params.Get(billableKey))
+				fields.Billable = &val
+			}
+
+		}
+	}
+	res.fields = fields
+	injectContext(&res, options)
+
+	return res
+}
+
 // Update existing Project based on fields and options given.
-func (p *ProjectNode) Update(ctx context.Context, workspaceID string, id string,
-	fields ProjectUpdateFields, options ProjectUpdateOptions) (*Project, error) {
+func (p *ProjectNode) Update(workspaceID string, id string, opts ...RequestOption) (*Project,
+	error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.endpoint, workspaceID, id)
-	res, err := put(ctx, p.apiKey, options, fields, endpoint)
+	res, err := put(projectUpdateRequest(p.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
 	}
@@ -283,14 +532,73 @@ func (p *ProjectNode) Update(ctx context.Context, workspaceID string, id string,
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil
+}
+
+func projectUpdateRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	res.params.Add(estimateTypeKey, EstimateTypeAuto)
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			opt.paramsProvider(res.params)
+		}
+	}
+
+	tr := true
+	fields := projectUpdateFields{Billable: &tr}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			params := url.Values{}
+			key := opt.paramsProvider(params)
+			switch key {
+			case nameKey:
+				fields.Name = params.Get(key)
+			case clientIDKey:
+				fields.ClientID = params.Get(key)
+			case isPublicKey:
+				val, _ := strconv.ParseBool(params.Get(key))
+				fields.IsPublic = &val
+			case hourlyRateKey:
+				hr := &HourlyRate{}
+				_ = json.Unmarshal([]byte(params.Get(key)), hr)
+				fields.HourlyRate = hr
+			case colorKey:
+				fields.Color = params.Get(key)
+			case noteKey:
+				fields.Note = params.Get(key)
+			case billableKey:
+				val, _ := strconv.ParseBool(params.Get(key))
+				fields.Billable = &val
+			case archivedKey:
+				val, _ := strconv.ParseBool(params.Get(key))
+				fields.Archived = &val
+			}
+		}
+	}
+	res.params.Del(nameKey)
+	res.params.Del(clientIDKey)
+	res.params.Del(isPublicKey)
+	res.params.Del(hourlyRateKey)
+	res.params.Del(colorKey)
+	res.params.Del(noteKey)
+	res.params.Del(billableKey)
+	res.params.Del(archivedKey)
+	res.fields = fields
+
+	injectContext(&res, options)
+
+	return res
 }
 
 // UpdateEstimate update existing Project's estimate based on fields and options given.
-func (p *ProjectNode) UpdateEstimate(ctx context.Context, workspaceID string, id string,
-	fields ProjectUpdateEstimateFields, options ProjectUpdateEstimateOptions) (*Project, error) {
+func (p *ProjectNode) UpdateEstimate(workspaceID string, id string,
+	opts ...RequestOption) (*Project, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/estimate", p.endpoint,
 		workspaceID, id)
-	res, err := patch(ctx, p.apiKey, options, fields, endpoint)
+	res, err := patch(projectUpdateEstimateRequest(p.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
 	}
@@ -302,14 +610,45 @@ func (p *ProjectNode) UpdateEstimate(ctx context.Context, workspaceID string, id
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil
+}
+
+func projectUpdateEstimateRequest(apiKey string, endpoint string,
+	options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+
+	fields := projectUpdateEstimateFields{}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			params := url.Values{}
+			key := opt.paramsProvider(params)
+			switch key {
+			case timeEstimateKey:
+				te := &TimeEstimate{}
+				_ = json.Unmarshal([]byte(params.Get(key)), te)
+				fields.TimeEstimate = te
+			case budgetEstimateKey:
+				be := &BudgetEstimate{}
+				_ = json.Unmarshal([]byte(params.Get(key)), be)
+				fields.BudgetEstimate = be
+			}
+		}
+	}
+	res.fields = fields
+
+	injectContext(&res, options)
+
+	return res
 }
 
 // UpdateMemberships update existing Project's memberships based on fields given.
-func (p *ProjectNode) UpdateMemberships(ctx context.Context, workspaceID string, id string,
-	fields ProjectUpdateMembershipsFields) (*Project, error) {
+func (p *ProjectNode) UpdateMemberships(workspaceID string, id string,
+	opts ...RequestOption) (*Project, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/memberships", p.endpoint,
 		workspaceID, id)
-	res, err := patch(ctx, p.apiKey, nil, fields, endpoint)
+	res, err := patch(projectUpdateMembershipRequest(p.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
 	}
@@ -321,14 +660,41 @@ func (p *ProjectNode) UpdateMemberships(ctx context.Context, workspaceID string,
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil
+}
+
+func projectUpdateMembershipRequest(apiKey string, endpoint string,
+	options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+
+	fields := projectUpdateMembershipsFields{}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			params := url.Values{}
+			key := opt.paramsProvider(params)
+			switch key {
+			case membershipsKey:
+				m := &Memberships{}
+				_ = json.Unmarshal([]byte(params.Get(key)), m)
+				fields.Memberships = m
+			}
+		}
+	}
+	res.fields = fields
+
+	injectContext(&res, options)
+
+	return res
 }
 
 // UpdateTemplate update existing Project's template based on fields options given.
-func (p *ProjectNode) UpdateTemplate(ctx context.Context, workspaceID string, id string,
-	fields ProjectUpdateTemplateFields) (*Project, error) {
+func (p *ProjectNode) UpdateTemplate(workspaceID string, id string,
+	opts ...RequestOption) (*Project, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/template", p.endpoint,
 		workspaceID, id)
-	res, err := patch(ctx, p.apiKey, nil, fields, endpoint)
+	res, err := patch(projectUpdateTemplateRequest(p.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
 	}
@@ -342,11 +708,37 @@ func (p *ProjectNode) UpdateTemplate(ctx context.Context, workspaceID string, id
 	return result, nil
 }
 
+func projectUpdateTemplateRequest(apiKey string, endpoint string,
+	options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+
+	fields := projectUpdateTemplateFields{}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			params := url.Values{}
+			key := opt.paramsProvider(params)
+			switch key {
+			case isTemplateKey:
+				val, _ := strconv.ParseBool(params.Get(key))
+				fields.IsTemplate = &val
+			}
+		}
+	}
+	res.fields = fields
+
+	injectContext(&res, options)
+
+	return res
+}
+
 // Delete existing Project.
-func (p *ProjectNode) Delete(ctx context.Context, workspaceID string, id string) (*Project,
+func (p *ProjectNode) Delete(workspaceID string, id string, opts ...RequestOption) (*Project,
 	error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s", p.endpoint, workspaceID, id)
-	res, err := del(ctx, p.apiKey, endpoint)
+	res, err := del(projectDeleteRequest(p.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("del: %w", err)
 	}
@@ -358,4 +750,14 @@ func (p *ProjectNode) Delete(ctx context.Context, workspaceID string, id string)
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil
+}
+
+func projectDeleteRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	injectContext(&res, options)
+
+	return res
 }

@@ -1,9 +1,11 @@
 package glockify
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
 )
 
 // TaskNode manipulating Task resource.
@@ -12,7 +14,7 @@ type TaskNode struct {
 	apiKey   string
 }
 
-// Task wraps Clockify's task resource.
+// Task represents Clockify's task resource.
 // See: https://clockify.me/developers-api#tag-Task
 type Task struct {
 	AssigneeIds []string   `json:"assigneeIds,omitempty"`
@@ -33,48 +35,111 @@ type CostRate struct {
 	Currency string `json:"currency,omitempty"`
 }
 
-// TaskAllFilter is used for All request.
-type TaskAllFilter struct {
-	// IsActive if provided and true, only active tasks will be returned.
-	// Otherwise, only finished tasks will be returned.
-	IsActive bool `schema:"is-active"`
+const (
+	isActiveKey         = "is-active"
+	strictNameSearchKey = "strict-name-search"
+	assigneeIDsKey      = "assigneeIds"
+	estimateKey         = "estimate"
+	statusKey           = "status"
+)
 
-	// Name if provided, task will be filtered by name
-	Name string `schema:"name"`
-
-	// Page default 1
-	Page int `schema:"page"`
-
-	// PageSize max page-size 5000
-	// Default 50
-	PageSize int `schema:"page-size"`
+// WithIsActive filter task by active state.
+func WithIsActive(isActive bool) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(isActiveKey, strconv.FormatBool(isActive))
+			return isActiveKey
+		},
+	}
 }
 
-// TaskAddFields is used for Add request.
-// See: https://clockify.me/developers-api#tag-Task
-type TaskAddFields struct {
+// WithStrictNameSearch if set to true, WithName filter will be exact match,
+// meanwhile if set to false, partial search is executed.
+func WithStrictNameSearch(on bool) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(strictNameSearchKey, strconv.FormatBool(on))
+			return strictNameSearchKey
+		},
+	}
+}
+
+type TaskSortColumn string
+
+// Possible value of TaskSortColumn
+const (
+	TaskSortColumnID   TaskSortColumn = "ID"
+	TaskSortColumnName                = "NAME"
+)
+
+// WithTaskSortColumn set fields you want to sort against.
+func WithTaskSortColumn(sortColumn TaskSortColumn) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(sortColumnKey, string(sortColumn))
+			return sortColumnKey
+		},
+	}
+}
+
+// WithAssigneeIDs set assignees for this task.
+func WithAssigneeIDs(ids []string) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(assigneeIDsKey, strings.Join(ids, arraySeparator))
+			return assigneeIDsKey
+		},
+	}
+}
+
+// WithEstimate set task estimate in Clockify time format. Eg: "PT2H" for 2 hour.
+func WithEstimate(estimate string) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(estimateKey, estimate)
+			return estimateKey
+		},
+	}
+}
+
+type TaskStatus string
+
+const (
+	TaskStatusActive TaskStatus = "ACTIVE"
+	TaskStatusDone              = "DONE"
+)
+
+// WithStatus set task state.
+func WithStatus(status TaskStatus) RequestOption {
+	return RequestOption{
+		paramsProvider: func(v url.Values) string {
+			v.Set(statusKey, string(status))
+			return statusKey
+		},
+	}
+}
+
+type taskAddFields struct {
 	Name        string   `json:"name"`
 	AssigneeIds []string `json:"assigneeIds,omitempty"`
 	Estimate    string   `json:"estimate,omitempty"`
 	Status      string   `json:"status,omitempty"`
 }
 
-// TaskUpdateFields is used for Update request.
-// See: https://clockify.me/developers-api#tag-Task
-type TaskUpdateFields struct {
+type taskUpdateFields struct {
 	Name        string   `json:"name,omitempty"`
 	AssigneeIds []string `json:"assigneeIds,omitempty"`
 	Estimate    string   `json:"estimate,omitempty"`
-	Billable    bool     `json:"billable,omitempty"`
+	Billable    *bool    `json:"billable,omitempty"`
 	Status      string   `json:"status,omitempty"`
 }
 
 // All get all Task resource based on filter given.
-func (t *TaskNode) All(ctx context.Context, workspaceID string, projectID string,
-	filter TaskAllFilter) ([]Task, error) {
+func (t *TaskNode) All(workspaceID string, projectID string, opts ...RequestOption) ([]Task,
+	error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks", t.endpoint,
 		workspaceID, projectID)
-	res, err := get(ctx, t.apiKey, filter, endpoint)
+	res, err := get(taskAllRequest(t.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
@@ -88,12 +153,31 @@ func (t *TaskNode) All(ctx context.Context, workspaceID string, projectID string
 	return result, nil
 }
 
+func taskAllRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	res.params.Add(pageKey, strconv.Itoa(defaultPage))
+	res.params.Add(pageSizeKey, strconv.Itoa(defaultPageSize))
+	res.params.Add(sortOrderKey, defaultSortOrder)
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			opt.paramsProvider(res.params)
+		}
+	}
+	injectContext(&res, options)
+
+	return res
+}
+
 // Get one Task by its id.
-func (t *TaskNode) Get(ctx context.Context, workspaceID string, projectID string,
-	id string) (*Task, error) {
+func (t *TaskNode) Get(workspaceID string, projectID string, id string,
+	opts ...RequestOption) (*Task, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks/%s", t.endpoint, workspaceID,
 		projectID, id)
-	res, err := get(ctx, t.apiKey, nil, endpoint)
+	res, err := get(taskGetRequest(t.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("get: %w", err)
 	}
@@ -107,12 +191,23 @@ func (t *TaskNode) Get(ctx context.Context, workspaceID string, projectID string
 	return result, nil
 }
 
+func taskGetRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	injectContext(&res, options)
+
+	return res
+}
+
 // Add create new Task based on fields given.
-func (t *TaskNode) Add(ctx context.Context, workspaceID string, projectID string,
-	fields TaskAddFields) (*Task, error) {
+func (t *TaskNode) Add(workspaceID string, projectID string, name string,
+	opts ...RequestOption) (*Task, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks", t.endpoint,
 		workspaceID, projectID)
-	res, err := post(ctx, t.apiKey, nil, fields, endpoint)
+	res, err := post(taskAddRequest(t.apiKey, endpoint, name, opts))
 	if err != nil {
 		return nil, fmt.Errorf("post: %w", err)
 	}
@@ -126,12 +221,40 @@ func (t *TaskNode) Add(ctx context.Context, workspaceID string, projectID string
 	return result, nil
 }
 
+func taskAddRequest(apiKey string, endpoint string, name string,
+	options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	fields := taskAddFields{Name: name}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			params := url.Values{}
+			key := opt.paramsProvider(params)
+			switch key {
+			case assigneeIDsKey:
+				fields.AssigneeIds = strings.Split(params.Get(key), arraySeparator)
+			case estimateKey:
+				fields.Estimate = params.Get(key)
+			case statusKey:
+				fields.Status = params.Get(key)
+			}
+
+		}
+	}
+	res.fields = fields
+	injectContext(&res, options)
+
+	return res
+}
+
 // Update existing Task based on fields and options given.
-func (t *TaskNode) Update(ctx context.Context, workspaceID string, projectID string, id string,
-	fields TaskUpdateFields) (*Task, error) {
+func (t *TaskNode) Update(workspaceID string, projectID string, id string,
+	opts ...RequestOption) (*Task, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/tasks/%s", t.endpoint,
 		workspaceID, projectID, id)
-	res, err := put(ctx, t.apiKey, nil, fields, endpoint)
+	res, err := put(taskUpdateRequest(t.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("put: %w", err)
 	}
@@ -145,12 +268,57 @@ func (t *TaskNode) Update(ctx context.Context, workspaceID string, projectID str
 	return result, nil
 }
 
+func taskUpdateRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	res.params = url.Values{}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			opt.paramsProvider(res.params)
+		}
+	}
+
+	fields := taskUpdateFields{}
+	for _, opt := range options {
+		if opt.paramsProvider != nil {
+			params := url.Values{}
+			key := opt.paramsProvider(params)
+			switch key {
+			case nameKey:
+				fields.Name = params.Get(key)
+			case assigneeIDsKey:
+				fields.AssigneeIds = strings.Split(params.Get(key), arraySeparator)
+			case estimateKey:
+				fields.Estimate = params.Get(key)
+			case billableKey:
+				val, _ := strconv.ParseBool(params.Get(key))
+				fields.Billable = &val
+			case statusKey:
+				fields.Status = params.Get(key)
+			}
+
+		}
+	}
+	res.params.Del(nameKey)
+	res.params.Del(assigneeIDsKey)
+	res.params.Del(estimateKey)
+	res.params.Del(billableKey)
+	res.params.Del(statusKey)
+	res.fields = fields
+
+	injectContext(&res, options)
+
+	return res
+}
+
 // Delete existing Task.
-func (t *TaskNode) Delete(ctx context.Context, workspaceID string, projectID string,
-	id string) (*Task, error) {
+func (t *TaskNode) Delete(workspaceID string, projectID string, id string,
+	opts ...RequestOption) (*Task, error) {
 	endpoint := fmt.Sprintf("%s/workspaces/%s/projects/%s/task/%s", t.endpoint,
 		workspaceID, projectID, id)
-	res, err := del(ctx, t.apiKey, endpoint)
+	res, err := del(taskDeleteRequest(t.apiKey, endpoint, opts))
 	if err != nil {
 		return nil, fmt.Errorf("del: %w", err)
 	}
@@ -162,4 +330,14 @@ func (t *TaskNode) Delete(ctx context.Context, workspaceID string, projectID str
 		return nil, fmt.Errorf("json unmarshal: %w", err)
 	}
 	return result, nil
+}
+
+func taskDeleteRequest(apiKey string, endpoint string, options []RequestOption) requestOptions {
+	res := requestOptions{
+		apiKey:   apiKey,
+		endpoint: endpoint,
+	}
+	injectContext(&res, options)
+
+	return res
 }
